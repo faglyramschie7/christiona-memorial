@@ -103,49 +103,26 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-// --- AUTH API ROUTES (Better Auth Compatible JSON endpoints) ---
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required' });
-    }
-    const cleanEmail = email.toLowerCase().trim();
-    const existing = await db.get('SELECT id FROM users WHERE email = ?', [cleanEmail]);
-    if (existing) {
-      return res.status(400).json({ error: 'An account with this email already exists' });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-    const userId = crypto.randomUUID();
-    await db.run(
-      'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
-      [userId, name.trim(), cleanEmail, hashed, 'user']
-    );
-
-    const token = jwt.sign({ id: userId, email: cleanEmail }, JWT_SECRET, { expiresIn: '30d' });
-    res.cookie('auth_token', token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
-    res.json({ success: true, user: { id: userId, name: name.trim(), email: cleanEmail, role: 'user' } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error during registration' });
-  }
+// --- AUTH API ROUTES ---
+// Registration is permanently disabled (only admin login is permitted)
+app.post('/api/auth/register', (req, res) => {
+  res.status(403).json({ error: 'Pendaftaran akun dinonaktifkan. Hanya akun admin yang dapat masuk.' });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: 'Email dan password wajib diisi' });
     }
     const cleanEmail = email.toLowerCase().trim();
     const user = await db.get('SELECT * FROM users WHERE email = ?', [cleanEmail]);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Email atau password salah' });
     }
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Email atau password salah' });
     }
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
@@ -153,7 +130,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error during login' });
+    res.status(500).json({ error: 'Terjadi kesalahan sistem saat masuk' });
   }
 });
 
