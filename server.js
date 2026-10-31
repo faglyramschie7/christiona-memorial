@@ -52,18 +52,21 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/upload', express.static(UPLOAD_DIR));
 
-// Create default admin user on boot
+// Create or update default admin user on boot
 async function ensureAdmin() {
   const adminEmail = 'admin@christiona.memorial';
+  const hashed = await bcrypt.hash('fractal1@a', 10);
   const existing = await db.get('SELECT * FROM users WHERE email = ?', [adminEmail]);
   if (!existing) {
-    const hashed = await bcrypt.hash('admin123', 10);
     const adminId = crypto.randomUUID();
     await db.run(
       'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
       [adminId, 'Admin Family', adminEmail, hashed, 'admin']
     );
-    console.log('Default admin created: admin@christiona.memorial / admin123');
+    console.log('Default admin created: admin@christiona.memorial / fractal1@a');
+  } else {
+    await db.run('UPDATE users SET password = ? WHERE email = ?', [hashed, adminEmail]);
+    console.log('Admin password synchronized: fractal1@a');
   }
 }
 ensureAdmin();
