@@ -41,6 +41,8 @@ export const api = {
   // Admin post-level moderation (approve/reject/delete all media in a post)
   adminPosts: () => request('/api/admin/posts'),
   approvePost: (postId) => request(`/api/admin/posts/${postId}/approve`, { method: 'POST' }),
+  archivePost: (postId) => request(`/api/admin/posts/${postId}/archive`, { method: 'POST' }),
+  unarchivePost: (postId) => request(`/api/admin/posts/${postId}/unarchive`, { method: 'POST' }),
   rejectPost: (postId) => request(`/api/admin/posts/${postId}/reject`, { method: 'POST' }),
   removePost: (postId) => request(`/api/admin/posts/${postId}`, { method: 'DELETE' }),
 

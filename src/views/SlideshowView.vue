@@ -132,6 +132,12 @@ onUnmounted(() => {
       :style="{ backgroundImage: `url(/upload/${currentItem.filename})` }"
     ></div>
 
+    <!-- Always-visible upload address (top right) -->
+    <router-link to="/create" class="upload-url-pill" title="Unggah foto & video kenangan">
+      <span class="upload-url-label">Unggah foto &amp; video di</span>
+      <strong class="upload-url-domain">christionamona.app</strong>
+    </router-link>
+
     <!-- Loading State -->
     <div v-if="loading" class="center-banner">
       <div class="candle-container">

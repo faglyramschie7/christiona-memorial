@@ -16,6 +16,7 @@ const counts = computed(() => ({
   pending: posts.value.filter((p) => p.status === 'pending').length,
   approved: posts.value.filter((p) => p.status === 'approved').length,
   rejected: posts.value.filter((p) => p.status === 'rejected').length,
+  archived: posts.value.filter((p) => p.status === 'archived').length,
   all: posts.value.length
 }));
 
@@ -49,6 +50,8 @@ async function act(fn, id, okMsg) {
 }
 
 const approvePost = (p) => act(api.approvePost, p.post_id, 'Postingan berhasil disetujui dan dipublikasikan! 🕊️');
+const archivePost = (p) => act(api.archivePost, p.post_id, 'Postingan diarsipkan dan disembunyikan dari feed.');
+const unarchivePost = (p) => act(api.unarchivePost, p.post_id, 'Postingan dipulihkan ke feed.');
 const rejectPost = (p) => act(api.rejectPost, p.post_id, 'Postingan telah ditolak.');
 const removePost = (p) => {
   if (confirm('Hapus seluruh postingan ini beserta semua file fotonya secara permanen?')) {
@@ -76,6 +79,7 @@ const tabs = [
   ['pending', 'Menunggu'],
   ['approved', 'Disetujui'],
   ['rejected', 'Ditolak'],
+  ['archived', 'Arsip'],
   ['all', 'Semua']
 ];
 </script>
@@ -172,7 +176,7 @@ const tabs = [
           <div class="admin-card-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
               <span class="status-tag" :class="`status-${post.status}`">
-                {{ post.status === 'approved' ? 'DISETUJUI' : (post.status === 'rejected' ? 'DITOLAK' : 'MENUNGGU') }}
+                {{ { approved: 'DISETUJUI', rejected: 'DITOLAK', archived: 'DIARSIPKAN' }[post.status] || 'MENUNGGU' }}
               </span>
               <small style="color: var(--text-muted); font-size: 0.75rem;">{{ formatDate(post.created_at) }}</small>
             </div>
@@ -197,22 +201,34 @@ const tabs = [
                 :disabled="busyId === post.post_id" 
                 @click="approvePost(post)"
               >
-                ✓ Setujui Postingan
+                ✓ {{ post.status === 'archived' ? 'Pulihkan ke Feed' : 'Setujui Postingan' }}
               </button>
+
+              <button 
+                v-if="post.status !== 'archived'" 
+                class="btn btn-sm btn-outline" 
+                :disabled="busyId === post.post_id" 
+                @click="archivePost(post)"
+                title="Sembunyikan dari feed publik & slideshow"
+              >
+                📦 Arsipkan
+              </button>
+
               <button 
                 v-if="post.status !== 'rejected'" 
                 class="btn btn-sm btn-danger" 
                 :disabled="busyId === post.post_id" 
                 @click="rejectPost(post)"
               >
-                ✕ Tolak Postingan
+                ✕ Tolak
               </button>
+
               <button 
                 class="btn btn-sm btn-outline" 
                 :disabled="busyId === post.post_id" 
                 @click="removePost(post)"
               >
-                🗑️ Hapus Postingan
+                🗑️ Hapus
               </button>
             </div>
           </div>

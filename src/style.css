@@ -1972,3 +1972,186 @@ button.btn, a.btn {
   background: rgba(255, 82, 82, 0.3);
   color: #fff;
 }
+
+/* ============================================================
+   BASE LAYOUT UTILITIES (admin / generic cards)
+   ============================================================ */
+.main-container {
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1.25rem;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.login-prompt-box {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+}
+
+.login-prompt-box p {
+  color: var(--text-muted);
+  max-width: 420px;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2.5rem 1rem;
+}
+
+/* ============================================================
+   MOBILE UI FIXES
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Prevent iOS zoom on focus + comfortable tap targets */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+
+  /* Home: "share" prompt bar */
+  .feed-create-bar {
+    padding: 0.7rem 0.85rem;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .prompt-text {
+    white-space: normal;
+    overflow: visible;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .feed-create-bar .btn {
+    flex-shrink: 0;
+    padding: 0.5rem 0.8rem;
+  }
+
+  /* Hero */
+  .hero-verse { padding: 0 0.25rem; }
+  .verse-text { font-size: 0.98rem; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-actions .btn { width: 100%; text-align: center; }
+
+  /* Upload page */
+  .post-create-card { padding: 1rem; }
+  .multi-dropzone { padding: 1.75rem 1rem; }
+  .composer-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  .composer-actions .btn { width: 100%; white-space: normal; }
+  .multi-preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .multi-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-height: 340px;
+  }
+  .upload-alert { padding: 0.75rem 0.85rem; gap: 0.6rem; }
+  .progress-header,
+  .progress-subnote {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  /* Admin */
+  .main-container { padding: 0 0.85rem; margin: 1rem auto; }
+  .card { padding: 1.1rem; }
+  .section-header { align-items: flex-start; }
+  .section-header .btn { width: 100%; }
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .admin-card-actions { flex-direction: column; }
+  .admin-card-actions .btn { width: 100%; }
+  .login-prompt-box .btn { width: 100%; margin-left: 0 !important; }
+
+  /* Review status page */
+  .review-actions .btn { width: 100%; }
+}
+
+/* Slideshow: always-visible upload address (top right) */
+.upload-url-pill {
+  position: absolute;
+  top: 1.1rem;
+  right: 2.25rem;
+  z-index: 30; /* stays above the overlays, which auto-hide */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+  padding: 0.45rem 0.9rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 192, 104, 0.5);
+  border-radius: 12px;
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+
+.upload-url-label {
+  font-size: 0.68rem;
+  color: #cbd5e1;
+  letter-spacing: 0.04em;
+}
+
+.upload-url-domain {
+  font-size: 1.05rem;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+
+/* Keep the controls from sitting under the address pill */
+.stage-top-overlay {
+  align-items: flex-start;
+}
+.stage-top-overlay .top-controls {
+  margin-top: 3.4rem;
+}
+
+@media (max-width: 768px) {
+  .upload-url-pill {
+    top: 0.8rem;
+    right: 1.25rem;
+    padding: 0.35rem 0.7rem;
+  }
+  .upload-url-domain { font-size: 0.92rem; }
+  .stage-top-overlay .top-controls { margin-top: 3rem; }
+}
+
+.status-archived {
+  background: rgba(154, 162, 181, 0.18);
+  color: var(--text-muted);
+  border: 1px solid rgba(154, 162, 181, 0.4);
+}

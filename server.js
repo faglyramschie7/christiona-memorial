@@ -315,6 +315,28 @@ app.post('/api/admin/posts/:postId/approve', requireAdmin, async (req, res) => {
   }
 });
 
+// Archive entire post (hidden from public feed/slideshow, but kept on disk and restorable)
+app.post('/api/admin/posts/:postId/archive', requireAdmin, async (req, res) => {
+  try {
+    const pid = req.params.postId;
+    await db.run("UPDATE uploads SET status = 'archived' WHERE post_id = ? OR id = ?", [pid, pid]);
+    res.json({ success: true, message: 'Postingan berhasil diarsipkan' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal mengarsipkan postingan' });
+  }
+});
+
+// Restore an archived post back to the public feed
+app.post('/api/admin/posts/:postId/unarchive', requireAdmin, async (req, res) => {
+  try {
+    const pid = req.params.postId;
+    await db.run("UPDATE uploads SET status = 'approved' WHERE post_id = ? OR id = ?", [pid, pid]);
+    res.json({ success: true, message: 'Postingan dipulihkan ke feed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memulihkan postingan' });
+  }
+});
+
 // Reject entire post
 app.post('/api/admin/posts/:postId/reject', requireAdmin, async (req, res) => {
   try {

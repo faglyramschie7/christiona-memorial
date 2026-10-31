@@ -16,7 +16,7 @@ const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in pub
         <div class="candle-flame"></div>
         <div class="candle-stick"></div>
       </div>
-      <p class="hero-subtitle">Forever in our hearts</p>
+      <p class="hero-subtitle">Selalu di Hati Kami • Forever in our hearts</p>
       <h1 class="hero-title">Christiona Adolfin Mona</h1>
       <div class="hero-verse">
         <p class="verse-text">“Akulah kebangkitan dan hidup; barangsiapa percaya kepada-Ku, ia akan hidup walaupun ia sudah mati.”</p>
@@ -27,8 +27,8 @@ const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in pub
         Unseen, unheard, but always near; still loved, still missed, and very dear.”
       </p>
       <div class="hero-actions">
-        <router-link to="/create" class="btn btn-primary">Share a Tribute or Photo</router-link>
-        <router-link to="/slideshow" class="btn btn-secondary">Watch Slideshow</router-link>
+        <router-link to="/create" class="btn btn-primary">🕊️ Bagikan Kenangan atau Foto</router-link>
+        <router-link to="/slideshow" class="btn btn-secondary">🎬 Tonton Slideshow</router-link>
       </div>
     </div>
   </header>
