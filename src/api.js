@@ -39,24 +39,51 @@ export const api = {
   remove: (id) => request(`/api/admin/uploads/${id}`, { method: 'DELETE' }),
 
   // Upload with progress (fetch cannot report upload progress)
-  upload(formData, onProgress) {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
+  upload(formData, onProgress, options = {}) {
+    let xhr;
+    const promise = new Promise((resolve, reject) => {
+      xhr = new XMLHttpRequest();
+
+      if (options && options.signal) {
+        if (options.signal.aborted) {
+          return reject(new Error('Upload was cancelled.'));
+        }
+        options.signal.addEventListener('abort', () => xhr.abort());
+      }
+
+      xhr.timeout = 10 * 60 * 1000; // 10 minutes timeout for heavy videos
+
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress?.(percent, e.loaded, e.total);
+        }
       };
+
       xhr.onload = () => {
         let data = {};
         try { data = JSON.parse(xhr.responseText); } catch { /* ignore */ }
         if (xhr.status >= 200 && xhr.status < 300) return resolve(data);
         if (xhr.status === 401) return reject(new Error('Your session expired. Please sign in again.'));
-        if (xhr.status === 413) return reject(new Error('File is too large (max 100MB).'));
+        if (xhr.status === 413) return reject(new Error('File is too large (max 100MB per file).'));
         reject(new Error(data.error || `Upload failed (HTTP ${xhr.status})`));
       };
-      xhr.onerror = () => reject(new Error('Connection lost during upload. Try again or use a smaller file.'));
+
+      xhr.ontimeout = () => reject(new Error('Upload timed out. The file might be too heavy or your network connection is too slow.'));
+      xhr.onabort = () => reject(new Error('Upload cancelled.'));
+      xhr.onerror = () => reject(new Error('Connection lost during upload. The file may be too heavy for your connection, or your connection dropped. Try again or use a smaller file.'));
+
       xhr.open('POST', '/api/upload');
       xhr.send(formData);
     });
+
+    promise.abort = () => {
+      if (xhr) {
+        try { xhr.abort(); } catch { /* ignore */ }
+      }
+    };
+
+    return promise;
   }
 };
 

@@ -323,6 +323,10 @@ app.use((err, req, res, next) => {
   res.status(err.status || 400).json({ error: err.message || 'Something went wrong' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Memorial server is running on http://0.0.0.0:${PORT}`);
 });
+// Extend HTTP timeouts to support heavy mobile video uploads without premature disconnects
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 125000;
+server.requestTimeout = 600000; // 10 minutes timeout for large files

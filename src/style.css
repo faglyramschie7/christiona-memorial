@@ -1640,3 +1640,223 @@ button.btn, a.btn {
   color: #0b0d12 !important;
   font-weight: 700 !important;
 }
+
+/* Pre-Upload Warning & Error Alerts */
+.upload-alert {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  margin-top: 1.25rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.upload-alert.alert-warning {
+  background: rgba(229, 192, 104, 0.12);
+  border: 1px solid rgba(229, 192, 104, 0.4);
+  color: #fcebc2;
+}
+
+.upload-alert.alert-error {
+  background: rgba(255, 82, 82, 0.12);
+  border: 1px solid rgba(255, 82, 82, 0.4);
+  color: #ffd2d2;
+}
+
+.upload-alert .alert-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.upload-alert .alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.alert-title-row strong {
+  font-size: 0.92rem;
+  color: #fff;
+}
+
+.warning-tag {
+  background: rgba(229, 192, 104, 0.25);
+  color: var(--gold);
+  border: 1px solid rgba(229, 192, 104, 0.4);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.alert-desc {
+  margin-bottom: 0.5rem;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.heavy-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+}
+
+.tip-item {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.tip-item strong {
+  color: #fff;
+}
+
+/* Preview Item Badges */
+.preview-item.is-oversized {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.3);
+}
+
+.preview-item.is-heavy {
+  border-color: rgba(229, 192, 104, 0.6) !important;
+}
+
+.preview-badges {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 4;
+}
+
+.badge-oversized {
+  background: rgba(255, 82, 82, 0.95);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.badge-heavy {
+  background: rgba(229, 192, 104, 0.95);
+  color: #1a1505;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Upload Progress Enhanced */
+.upload-progress-container {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.progress-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 192, 104, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(229, 192, 104, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 192, 104, 0); }
+}
+
+.progress-numbers {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.progress-bar.animated-stripes {
+  background: linear-gradient(
+    45deg,
+    var(--gold) 25%,
+    var(--gold-dark) 25%,
+    var(--gold-dark) 50%,
+    var(--gold) 50%,
+    var(--gold) 75%,
+    var(--gold-dark) 75%,
+    var(--gold-dark)
+  );
+  background-size: 30px 30px;
+  animation: progress-stripes 1.2s linear infinite;
+}
+
+@keyframes progress-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 0; }
+}
+
+.progress-subnote {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.btn-cancel-upload {
+  background: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.35);
+  color: #ff8585;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel-upload:hover {
+  background: rgba(255, 82, 82, 0.3);
+  color: #fff;
+}
