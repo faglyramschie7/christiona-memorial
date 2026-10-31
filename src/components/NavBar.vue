@@ -1,4 +1,5 @@
 <script setup>
+import { state, logout } from '../store';
 import Icon from './Icon.vue';
 </script>
 
@@ -9,6 +10,16 @@ import Icon from './Icon.vue';
       <Icon name="dove" :size="20" class="brand-icon" />
       <span class="brand-name">Christiona Adolfin Mona</span>
     </router-link>
+
+    <!-- Subtle User / Logout icon when someone is logged in -->
+    <div v-if="state.user" class="header-user-badge">
+      <span class="badge-avatar" :title="state.user.name">
+        {{ state.user.name.charAt(0).toUpperCase() }}
+      </span>
+      <button class="header-logout-btn" @click="logout" title="Log Out">
+        <span>Log out</span>
+      </button>
+    </div>
   </header>
 
   <!-- Clean 3-Item Bottom Navigation: Feed, Upload, Slideshow -->

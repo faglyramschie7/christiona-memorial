@@ -7,6 +7,12 @@ import Icon from '../components/Icon.vue';
 
 const router = useRouter();
 
+function handleLogout() {
+  state.user = null;
+  api.logout().catch(() => {});
+  toast('Logged out successfully');
+}
+
 const selectedFiles = ref([]); // array of { file, previewUrl, isVideo, sizeLabel }
 const caption = ref('');
 const progress = ref(0);
@@ -131,8 +137,21 @@ async function handleMultiUpload() {
       </div>
     </div>
 
-    <!-- Multi-Upload Card -->
+    <!-- Composer Card -->
     <div v-else class="card post-create-card">
+      <!-- Author Header with quick Log Out link -->
+      <div class="composer-author" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap: 0.75rem;">
+          <div class="insta-avatar">{{ state.user.name.charAt(0).toUpperCase() }}</div>
+          <div>
+            <strong style="color: #fff;">{{ state.user.name }}</strong>
+            <div style="font-size: 0.78rem; color: var(--gold);">Posting for Christiona</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" @click="handleLogout" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+          Log out
+        </button>
+      </div>
       <!-- Drag & Drop Multi-File Zone -->
       <div 
         class="file-dropzone multi-dropzone" 
