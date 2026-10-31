@@ -95,6 +95,54 @@ function handleKeydown(e) {
   resetOverlayFade();
 }
 
+let touchStartX = 0;
+let touchStartY = 0;
+let isTouchSwiping = false;
+
+function onTouchStart(e) {
+  resetOverlayFade();
+  if (e.touches && e.touches.length > 0) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isTouchSwiping = false;
+  }
+}
+
+function onTouchMove(e) {
+  if (e.touches && e.touches.length > 0) {
+    const diffX = e.touches[0].clientX - touchStartX;
+    const diffY = e.touches[0].clientY - touchStartY;
+    if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+      isTouchSwiping = true;
+    }
+  }
+}
+
+function onTouchEnd(e) {
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX < 0) {
+        nextSlide();
+      } else {
+        prevSlide();
+      }
+    }
+  }
+  setTimeout(() => {
+    isTouchSwiping = false;
+  }, 120);
+}
+
+function handleStageClick() {
+  if (isTouchSwiping) return;
+  togglePlay();
+}
+
 onMounted(async () => {
   await loadMedia();
   if (mediaList.value.length) {
@@ -161,7 +209,13 @@ onUnmounted(() => {
 
     <!-- Active Cinematic Stage -->
     <template v-else>
-      <div class="stage-viewport" @click="togglePlay">
+      <div 
+        class="stage-viewport" 
+        @click="handleStageClick"
+        @touchstart.passive="onTouchStart"
+        @touchmove.passive="onTouchMove"
+        @touchend="onTouchEnd"
+      >
         <transition name="cinematic-crossfade" mode="out-in">
           <div :key="currentItem.id" class="slide-layer">
             <!-- Video -->
@@ -180,6 +234,7 @@ onUnmounted(() => {
               :src="`/upload/${currentItem.filename}`" 
               :alt="currentItem.caption || 'Memorial Photo'" 
               class="slide-fit-media ken-burns-fx" 
+              draggable="false"
             />
           </div>
         </transition>

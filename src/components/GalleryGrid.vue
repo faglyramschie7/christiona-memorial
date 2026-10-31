@@ -2,8 +2,16 @@
 import { state } from '../store';
 import { formatDate } from '../api';
 
-defineProps({ items: { type: Array, required: true } });
-const open = (item) => (state.lightbox = { src: `/upload/${item.filename}`, video: item.mimetype.startsWith('video') });
+const props = defineProps({ items: { type: Array, required: true } });
+const open = (item, idx) => {
+  state.lightbox = {
+    items: props.items,
+    currentIndex: idx,
+    src: `/upload/${item.filename}`,
+    video: item.mimetype.startsWith('video'),
+    caption: item.caption || ''
+  };
+};
 const isVideo = (item) => item.mimetype.startsWith('video');
 </script>
 
@@ -22,8 +30,8 @@ const isVideo = (item) => item.mimetype.startsWith('video');
     </div>
 
     <div v-else class="gallery-grid">
-      <article v-for="item in items" :key="item.id" class="gallery-card">
-        <div class="gallery-media-wrapper" @click="open(item)">
+      <article v-for="(item, idx) in items" :key="item.id" class="gallery-card">
+        <div class="gallery-media-wrapper" @click="open(item, idx)">
           <video v-if="isVideo(item)" :src="`/upload/${item.filename}#t=0.1`" preload="metadata" muted></video>
           <img v-else :src="`/upload/${item.filename}`" :alt="item.caption || 'Memory'" loading="lazy" />
           <span v-if="isVideo(item)" class="play-badge">▶</span>

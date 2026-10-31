@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { api, formatDate } from '../api';
 import { state, toast } from '../store';
 import HeroSection from '../components/HeroSection.vue';
@@ -7,6 +7,7 @@ import HeroSection from '../components/HeroSection.vue';
 const posts = ref([]);
 const loading = ref(true);
 const activeMediaIndex = ref({});
+const touchTracker = reactive({});
 
 async function loadFeed() {
   loading.value = true;
@@ -45,6 +46,67 @@ function setMediaIndex(post, idx) {
   activeMediaIndex.value[post.post_id || post.id] = idx;
 }
 
+function nextPostMedia(post) {
+  if (!post.mediaList || post.mediaList.length <= 1) return;
+  const pid = post.post_id || post.id;
+  const current = activeMediaIndex.value[pid] || 0;
+  activeMediaIndex.value[pid] = (current + 1) % post.mediaList.length;
+}
+
+function prevPostMedia(post) {
+  if (!post.mediaList || post.mediaList.length <= 1) return;
+  const pid = post.post_id || post.id;
+  const current = activeMediaIndex.value[pid] || 0;
+  activeMediaIndex.value[pid] = (current - 1 + post.mediaList.length) % post.mediaList.length;
+}
+
+function onTouchStart(postId, e) {
+  if (!e.touches || e.touches.length === 0) return;
+  touchTracker[postId] = {
+    startX: e.touches[0].clientX,
+    startY: e.touches[0].clientY,
+    moved: false
+  };
+}
+
+function onTouchMove(postId, e) {
+  if (!touchTracker[postId] || !e.touches || e.touches.length === 0) return;
+  const diffX = e.touches[0].clientX - touchTracker[postId].startX;
+  const diffY = e.touches[0].clientY - touchTracker[postId].startY;
+  if (Math.abs(diffX) > 10) {
+    touchTracker[postId].moved = true;
+  }
+}
+
+function onTouchEnd(post, e) {
+  const pid = post.post_id || post.id;
+  const track = touchTracker[pid];
+  if (!track || !e.changedTouches || e.changedTouches.length === 0) return;
+
+  const diffX = e.changedTouches[0].clientX - track.startX;
+  const diffY = e.changedTouches[0].clientY - track.startY;
+
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+    if (diffX < 0) {
+      nextPostMedia(post);
+    } else {
+      prevPostMedia(post);
+    }
+  }
+
+  setTimeout(() => {
+    if (touchTracker[pid]) {
+      touchTracker[pid].moved = false;
+    }
+  }, 120);
+}
+
+function handleMediaClick(post) {
+  const pid = post.post_id || post.id;
+  if (touchTracker[pid]?.moved) return;
+  openMedia(getActiveMedia(post), post);
+}
+
 async function handleLike(post) {
   try {
     const res = await api.like(post.id);
@@ -55,11 +117,16 @@ async function handleLike(post) {
   }
 }
 
-function openMedia(mediaItem) {
+function openMedia(mediaItem, post = null) {
   if (!mediaItem || !mediaItem.filename) return;
+  const list = post?.mediaList && post.mediaList.length > 0 ? post.mediaList : [mediaItem];
+  const idx = post ? (activeMediaIndex.value[post.post_id || post.id] || 0) : 0;
   state.lightbox = {
+    items: list,
+    currentIndex: idx,
     src: `/upload/${mediaItem.filename}`,
-    video: mediaItem.mimetype?.startsWith('video')
+    video: mediaItem.mimetype?.startsWith('video'),
+    caption: post?.caption || mediaItem.caption || ''
   };
 }
 
@@ -121,14 +188,21 @@ onMounted(loadFeed);
           </header>
 
           <!-- Card Media Area -->
-          <div v-if="getActiveMedia(post).filename" class="media-carousel-wrap">
+          <div 
+            v-if="getActiveMedia(post).filename" 
+            class="media-carousel-wrap"
+            @touchstart.passive="onTouchStart(post.post_id || post.id, $event)"
+            @touchmove.passive="onTouchMove(post.post_id || post.id, $event)"
+            @touchend="onTouchEnd(post, $event)"
+          >
             <div 
               class="insta-media" 
               :class="{ 'video-media': getActiveMedia(post).mimetype.startsWith('video') }"
-              @click="openMedia(getActiveMedia(post))"
+              @click="handleMediaClick(post)"
             >
               <video 
                 v-if="getActiveMedia(post).mimetype.startsWith('video')" 
+                :key="getActiveMedia(post).id || getActiveMedia(post).filename"
                 :src="`/upload/${getActiveMedia(post).filename}#t=0.1`" 
                 controls 
                 preload="metadata"
@@ -136,11 +210,31 @@ onMounted(loadFeed);
               ></video>
               <img 
                 v-else 
+                :key="getActiveMedia(post).id || getActiveMedia(post).filename"
                 :src="`/upload/${getActiveMedia(post).filename}`" 
                 :alt="post.caption || 'Memorial memory'" 
                 loading="lazy" 
+                draggable="false"
               />
             </div>
+
+            <!-- Multi-Media Navigation Arrows -->
+            <button 
+              v-if="post.mediaList && post.mediaList.length > 1 && (activeMediaIndex[post.post_id || post.id] || 0) > 0"
+              class="feed-carousel-arrow arrow-left" 
+              @click.stop="prevPostMedia(post)"
+              aria-label="Sebelumnya"
+            >
+              &#8249;
+            </button>
+            <button 
+              v-if="post.mediaList && post.mediaList.length > 1 && (activeMediaIndex[post.post_id || post.id] || 0) < post.mediaList.length - 1"
+              class="feed-carousel-arrow arrow-right" 
+              @click.stop="nextPostMedia(post)"
+              aria-label="Berikutnya"
+            >
+              &#8250;
+            </button>
 
             <!-- Multi-Media Counter & Switcher Dots -->
             <div v-if="post.mediaList && post.mediaList.length > 1" class="media-counter-pill">
@@ -172,7 +266,7 @@ onMounted(loadFeed);
             <button 
               v-if="getActiveMedia(post).filename" 
               class="action-btn" 
-              @click="openMedia(getActiveMedia(post))" 
+              @click="openMedia(getActiveMedia(post), post)" 
               title="Perbesar media"
             >
               <span>🔍 Perbesar</span>
