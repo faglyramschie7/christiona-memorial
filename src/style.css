@@ -919,10 +919,51 @@ code {
   border-color: var(--gold);
 }
 
+/* ============================================================
+   DROPZONE & UPLOAD AREA STYLING
+   ============================================================ */
+.file-dropzone {
+  border: 2px dashed rgba(229, 192, 104, 0.4);
+  background: var(--bg-input);
+  background: linear-gradient(180deg, rgba(29, 33, 45, 0.7) 0%, rgba(14, 16, 23, 0.95) 100%);
+  border-radius: 16px;
+  padding: 2.75rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.file-dropzone:hover, 
+.file-dropzone.dragover {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(229, 192, 104, 0.12) 0%, rgba(20, 24, 33, 0.95) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(229, 192, 104, 0.15), inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.drop-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.dropzone-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.35rem;
+}
+
+.dropzone-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  display: block;
+}
+
 /* Multi-Upload Grid Preview Styles */
 .multi-dropzone {
-  padding: 2.2rem 1.5rem;
-  border-radius: 14px;
+  padding: 2.5rem 1.5rem;
 }
 
 .multi-preview-section {
