@@ -1088,3 +1088,150 @@ input:focus, textarea:focus {
     margin: 1.25rem auto;
   }
 }
+
+/* ============================================================
+   ADMIN DASHBOARD STYLES & MISSING UTILITIES
+   ============================================================ */
+.admin-badge {
+  background: rgba(255, 106, 61, 0.16);
+  color: #ff9b7a;
+  border: 1px solid rgba(255, 106, 61, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  border-color: var(--gold);
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: var(--gold);
+  color: #0b0d12;
+  font-weight: 700;
+  border-color: var(--gold);
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-card-media {
+  height: 200px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.admin-card-media img,
+.admin-card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-card-body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  flex: 1;
+}
+
+.admin-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.status-pending {
+  background: rgba(229, 192, 104, 0.18);
+  color: var(--gold);
+  border: 1px solid rgba(229, 192, 104, 0.4);
+}
+
+.status-approved {
+  background: rgba(61, 213, 152, 0.18);
+  color: var(--success);
+  border: 1px solid rgba(61, 213, 152, 0.4);
+}
+
+.status-rejected {
+  background: rgba(255, 82, 82, 0.18);
+  color: var(--danger);
+  border: 1px solid rgba(255, 82, 82, 0.4);
+}
+
+.admin-link {
+  color: #ff9b7a !important;
+}
+
+/* Ensure button visibility & contrast everywhere */
+button.btn, a.btn {
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.login-btn {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #0b0d12 !important;
+  font-weight: 700 !important;
+}
