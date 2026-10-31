@@ -3,58 +3,81 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../api';
 import { state, openAuth, toast } from '../store';
+import Icon from '../components/Icon.vue';
 
 const router = useRouter();
 
-const postType = ref('all'); // 'all' (Media + Text), 'media', 'text'
-const file = ref(null);
+const selectedFiles = ref([]); // array of { file, previewUrl, isVideo, sizeLabel }
 const caption = ref('');
-const previewUrl = ref('');
 const progress = ref(0);
 const uploading = ref(false);
 const dragging = ref(false);
 const fileInput = ref(null);
 
-const isVideo = computed(() => file.value?.type.startsWith('video'));
-const sizeLabel = computed(() => file.value ? (file.value.size / 1048576).toFixed(2) + ' MB' : '');
+const totalSize = computed(() => {
+  const bytes = selectedFiles.value.reduce((acc, f) => acc + f.file.size, 0);
+  return (bytes / 1048576).toFixed(2);
+});
 
-function pickFile(f) {
-  if (!f) return;
-  if (!/^(image|video)\//.test(f.type)) {
-    return toast('Please select a valid image or video file.', 'error');
+function addFiles(files) {
+  if (!files || !files.length) return;
+
+  const validFiles = Array.from(files).filter(f => {
+    const isMedia = f.type.startsWith('image/') || f.type.startsWith('video/');
+    if (!isMedia) {
+      toast(`Skipped "${f.name}": Only images and videos are permitted.`, 'error');
+      return false;
+    }
+    if (f.size > 100 * 1048576) {
+      toast(`Skipped "${f.name}": Exceeds 100MB limit.`, 'error');
+      return false;
+    }
+    return true;
+  });
+
+  for (const f of validFiles) {
+    // Avoid exact duplicate in current selection
+    if (selectedFiles.value.some(existing => existing.file.name === f.name && existing.file.size === f.size)) {
+      continue;
+    }
+    selectedFiles.value.push({
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+      isVideo: f.type.startsWith('video/'),
+      sizeLabel: (f.size / 1048576).toFixed(2) + ' MB'
+    });
   }
-  if (f.size > 100 * 1048576) {
-    return toast('File is too large (max 100MB).', 'error');
-  }
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
-  file.value = f;
-  previewUrl.value = URL.createObjectURL(f);
 }
 
-function removeFile() {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
-  file.value = null;
-  previewUrl.value = '';
+function removeFile(index) {
+  const removed = selectedFiles.value.splice(index, 1);
+  if (removed.length && removed[0].previewUrl) {
+    URL.revokeObjectURL(removed[0].previewUrl);
+  }
+}
+
+function clearAll() {
+  for (const item of selectedFiles.value) {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  }
+  selectedFiles.value = [];
   if (fileInput.value) fileInput.value.value = '';
 }
 
 function onDrop(e) {
   dragging.value = false;
-  if (e.dataTransfer.files.length) {
-    pickFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files && e.dataTransfer.files.length) {
+    addFiles(e.dataTransfer.files);
   }
 }
 
-async function handlePublish() {
+async function handleMultiUpload() {
   if (!state.user) {
     return openAuth('login');
   }
 
-  const hasFile = !!file.value;
-  const hasText = !!caption.value.trim();
-
-  if (!hasFile && !hasText) {
-    return toast('Please either add a photo/video or write some text.', 'error');
+  if (!selectedFiles.value.length) {
+    return toast('Please select at least one image or video to upload.', 'error');
   }
 
   uploading.value = true;
@@ -62,21 +85,19 @@ async function handlePublish() {
 
   try {
     const formData = new FormData();
-    if (hasFile) {
-      formData.append('media', file.value);
+    for (const item of selectedFiles.value) {
+      formData.append('media', item.file);
     }
-    if (hasText) {
+    if (caption.value.trim()) {
       formData.append('caption', caption.value.trim());
     }
 
     const res = await api.upload(formData, (p) => (progress.value = p));
-    toast(res.message || 'Post submitted successfully! 🕊️');
-    
-    // Reset form
-    removeFile();
+    toast(res.message || 'Upload complete! 🕊️');
+
+    clearAll();
     caption.value = '';
 
-    // Route back to feed
     setTimeout(() => {
       router.push('/');
     }, 1200);
@@ -92,57 +113,29 @@ async function handlePublish() {
   <main class="page-container">
     <div class="page-header">
       <router-link to="/" class="back-link">← Back to Feed</router-link>
-      <h1 class="page-title">Create a Post for Christiona</h1>
+      <h1 class="page-title">Upload Images &amp; Videos</h1>
       <p class="section-desc">
-        Share your cherished memories, photos, video clips, or loving words.
-        Uploads are reviewed by admin to keep Christiona's memorial safe and peaceful.
+        Select multiple photos and video clips celebrating <strong>Christiona Adolfin Mona</strong>.
+        Uploaded files are saved to the <code>upload/</code> folder and will be published to the feed and slideshow after admin approval.
       </p>
     </div>
 
-    <!-- Sign in notice if not logged in -->
+    <!-- Sign In Box if guest -->
     <div v-if="!state.user" class="card login-prompt-box">
       <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
-      <h3>Sign in to share your post</h3>
-      <p>Anyone can sign up or log in with an email in seconds to share memories.</p>
+      <h3>Sign in to Upload</h3>
+      <p>Anyone can sign up or log in with an email in seconds to upload memories.</p>
       <div style="display:flex; justify-content:center; gap: 0.8rem; margin-top: 1rem;">
         <button class="btn btn-primary" @click="openAuth('login')">Sign In</button>
-        <button class="btn btn-outline" @click="openAuth('register')">Register Free</button>
+        <button class="btn btn-outline" @click="openAuth('register')">Register</button>
       </div>
     </div>
 
-    <!-- Isolated Post Creator Form -->
+    <!-- Multi-Upload Card -->
     <div v-else class="card post-create-card">
-      <!-- Author Header -->
-      <div class="composer-author">
-        <div class="insta-avatar">{{ state.user.name.charAt(0).toUpperCase() }}</div>
-        <div>
-          <strong style="color: #fff;">{{ state.user.name }}</strong>
-          <div style="font-size: 0.78rem; color: var(--gold);">Posting in remembrance of Christiona Adolfin Mona</div>
-        </div>
-      </div>
-
-      <!-- Text / Caption Area (Always available) -->
-      <div class="form-group" style="margin-top: 0;">
-        <textarea 
-          v-model="caption" 
-          rows="4" 
-          placeholder="Write your story, memory, prayer, or thought for Christiona... (Text only is welcome!)"
-          class="composer-textarea"
-        ></textarea>
-      </div>
-
-      <!-- File Attachment Preview Area -->
-      <div v-if="file" class="composer-preview">
-        <button class="remove-media-btn" @click="removeFile" title="Remove attachment">&times;</button>
-        <video v-if="isVideo" :src="previewUrl" controls class="media-elem"></video>
-        <img v-else :src="previewUrl" alt="Selected upload" class="media-elem" />
-        <div class="preview-filename">{{ file.name }} ({{ sizeLabel }})</div>
-      </div>
-
-      <!-- Dropzone (if no file chosen yet) -->
+      <!-- Drag & Drop Multi-File Zone -->
       <div 
-        v-else 
-        class="file-dropzone compact-dropzone" 
+        class="file-dropzone multi-dropzone" 
         :class="{ dragover: dragging }"
         @click="fileInput.click()"
         @dragover.prevent="dragging = true"
@@ -150,15 +143,52 @@ async function handlePublish() {
         @drop.prevent="onDrop"
       >
         <div class="drop-icon">📸 🎥</div>
-        <p class="dropzone-text">Click or drag & drop a photo or video (Optional)</p>
-        <span class="dropzone-sub">Supports JPG, PNG, WEBP, MP4, WEBM (Up to 100MB)</span>
+        <p class="dropzone-text">Click or drag &amp; drop multiple images and videos here</p>
+        <span class="dropzone-sub">Supports JPG, PNG, WEBP, GIF, MP4, WEBM (Up to 10 files, 100MB each)</span>
         <input 
           ref="fileInput" 
           type="file" 
           accept="image/*,video/*" 
+          multiple 
           hidden 
-          @change="pickFile($event.target.files[0])" 
+          @change="addFiles($event.target.files)" 
         />
+      </div>
+
+      <!-- Selected Files Gallery Preview -->
+      <div v-if="selectedFiles.length" class="multi-preview-section">
+        <div class="multi-preview-header">
+          <strong>Selected: {{ selectedFiles.length }} {{ selectedFiles.length === 1 ? 'file' : 'files' }} ({{ totalSize }} MB total)</strong>
+          <button type="button" class="btn btn-outline btn-sm" @click="clearAll">Clear All</button>
+        </div>
+
+        <div class="multi-preview-grid">
+          <div v-for="(item, index) in selectedFiles" :key="index" class="preview-item">
+            <button type="button" class="remove-chip-btn" @click="removeFile(index)" title="Remove this file">&times;</button>
+            <video v-if="item.isVideo" :src="item.previewUrl" controls class="item-media"></video>
+            <img v-else :src="item.previewUrl" :alt="item.file.name" class="item-media" />
+            <div class="item-info">
+              <span class="item-name">{{ item.file.name }}</span>
+              <span class="item-size">{{ item.sizeLabel }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top: 0.8rem;" @click="fileInput.click()">
+          ➕ Add More Files
+        </button>
+      </div>
+
+      <!-- Caption / Memory Description -->
+      <div class="form-group" style="margin-top: 1.25rem;">
+        <label for="upload-caption">Caption or Story (Optional)</label>
+        <textarea 
+          id="upload-caption" 
+          v-model="caption" 
+          rows="3" 
+          placeholder="Share where these photos were taken, or a loving note for Christiona..."
+          class="composer-textarea"
+        ></textarea>
       </div>
 
       <!-- Progress bar -->
@@ -166,41 +196,31 @@ async function handlePublish() {
         <div class="progress">
           <div class="progress-bar" :style="{ width: progress + '%' }"></div>
         </div>
-        <div class="progress-text">Uploading post: {{ progress }}%</div>
+        <div class="progress-text">Uploading {{ selectedFiles.length }} items: {{ progress }}%</div>
       </div>
 
-      <!-- Post Action Buttons -->
+      <!-- Upload Action -->
       <div class="composer-actions">
-        <button 
-          v-if="!file" 
-          type="button" 
-          class="btn btn-outline btn-sm" 
-          @click="fileInput.click()"
-        >
-          📷 Attach Photo / Video
-        </button>
-        <button 
-          v-else 
-          type="button" 
-          class="btn btn-outline btn-sm" 
-          @click="removeFile"
-        >
-          🗑️ Clear Attachment
-        </button>
+        <span v-if="!selectedFiles.length" style="color: var(--text-muted); font-size: 0.85rem;">
+          Select at least 1 image or video to proceed
+        </span>
+        <span v-else style="color: var(--gold); font-size: 0.85rem;">
+          Ready to upload {{ selectedFiles.length }} items
+        </span>
 
         <button 
           type="button" 
           class="btn btn-primary" 
-          :disabled="uploading || (!file && !caption.trim())"
-          @click="handlePublish"
+          :disabled="uploading || !selectedFiles.length"
+          @click="handleMultiUpload"
         >
-          <span v-if="uploading">Publishing...</span>
-          <span v-else>🕊️ Share Post</span>
+          <span v-if="uploading">Uploading...</span>
+          <span v-else>⬆️ Upload All Files</span>
         </button>
       </div>
 
       <div class="moderation-notice">
-        ℹ️ <em>In honor of Christiona, all posts are safely reviewed by admin before appearing on the public feed.</em>
+        🛡️ <em>All uploaded images and videos go to the <code>upload/</code> folder and will appear on the public feed and slideshow once approved by admin.</em>
       </div>
     </div>
   </main>

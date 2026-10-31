@@ -192,37 +192,37 @@ app.post('/api/tributes', async (req, res) => {
   }
 });
 
-// --- MEDIA / TRIBUTE UPLOADS (Instagram style: Media + Text, or Media only, or Text only) ---
-// Open for any logged-in user:
-app.post('/api/upload', requireAuth, upload.single('media'), async (req, res) => {
+// --- MULTI-FILE UPLOADS (Images and Videos Only) ---
+// Accepts multiple files up to 10 at once
+app.post('/api/upload', requireAuth, upload.array('media', 10), async (req, res) => {
   try {
+    const files = req.files || [];
     const caption = (req.body.caption || '').trim();
-    const hasFile = !!req.file;
 
-    if (!hasFile && !caption) {
-      return res.status(400).json({ error: 'Please provide either a photo/video or write a tribute message.' });
+    if (!files.length) {
+      return res.status(400).json({ error: 'Please select at least one image or video to upload.' });
     }
 
-    const id = crypto.randomUUID();
-    const filename = hasFile ? req.file.filename : '';
-    const original_name = hasFile ? req.file.originalname : '';
-    const mimetype = hasFile ? req.file.mimetype : 'text/plain';
-    const size = hasFile ? req.file.size : 0;
-    
-    // Status defaults to 'pending' unless uploader is admin
     const status = req.user.role === 'admin' ? 'approved' : 'pending';
+    const uploadedIds = [];
 
-    await db.run(
-      'INSERT INTO uploads (id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, req.user.id, req.user.name, filename, original_name, mimetype, size, caption, status]
-    );
+    for (const file of files) {
+      const id = crypto.randomUUID();
+      await db.run(
+        'INSERT INTO uploads (id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, req.user.id, req.user.name, file.filename, file.originalname, file.mimetype, file.size, caption, status]
+      );
+      uploadedIds.push(id);
+    }
 
+    const countText = files.length === 1 ? '1 file' : `${files.length} files`;
     res.json({
       success: true,
+      count: files.length,
       status: status,
       message: status === 'approved' 
-        ? 'Post published to the memorial feed!' 
-        : 'Post submitted successfully! It is awaiting admin approval before appearing on the public memorial feed.'
+        ? `${countText} uploaded and published to memorial feed!` 
+        : `${countText} uploaded successfully! Stored in upload/ and awaiting admin approval before being shown publicly.`
     });
   } catch (err) {
     console.error(err);
