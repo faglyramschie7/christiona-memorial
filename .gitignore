@@ -1,0 +1,7 @@
+node_modules/
+database.sqlite
+.env
+.DS_Store
+# Keep upload folder structure but don't track uploaded files by default
+upload/*
+!upload/.gitkeep
