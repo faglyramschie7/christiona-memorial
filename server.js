@@ -49,7 +49,7 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/upload', express.static(UPLOAD_DIR));
 
 // Create default admin user on boot
@@ -192,34 +192,52 @@ app.post('/api/tributes', async (req, res) => {
   }
 });
 
-// --- MEDIA UPLOADS ---
+// --- MEDIA / TRIBUTE UPLOADS (Instagram style: Media + Text, or Media only, or Text only) ---
 // Open for any logged-in user:
 app.post('/api/upload', requireAuth, upload.single('media'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Please select an image or video file' });
+    const caption = (req.body.caption || '').trim();
+    const hasFile = !!req.file;
+
+    if (!hasFile && !caption) {
+      return res.status(400).json({ error: 'Please provide either a photo/video or write a tribute message.' });
     }
+
     const id = crypto.randomUUID();
-    const caption = req.body.caption || '';
+    const filename = hasFile ? req.file.filename : '';
+    const original_name = hasFile ? req.file.originalname : '';
+    const mimetype = hasFile ? req.file.mimetype : 'text/plain';
+    const size = hasFile ? req.file.size : 0;
     
     // Status defaults to 'pending' unless uploader is admin
     const status = req.user.role === 'admin' ? 'approved' : 'pending';
 
     await db.run(
       'INSERT INTO uploads (id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, req.user.id, req.user.name, req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, caption, status]
+      [id, req.user.id, req.user.name, filename, original_name, mimetype, size, caption, status]
     );
 
     res.json({
       success: true,
       status: status,
       message: status === 'approved' 
-        ? 'Media uploaded and published!' 
-        : 'Media uploaded successfully! It is in the upload folder and awaiting admin approval before being displayed on the public gallery.'
+        ? 'Post published to the memorial feed!' 
+        : 'Post submitted successfully! It is awaiting admin approval before appearing on the public memorial feed.'
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Upload failed' });
+  }
+});
+
+// Like / Heart a post
+app.post('/api/media/:id/like', async (req, res) => {
+  try {
+    await db.run("UPDATE uploads SET likes = COALESCE(likes, 0) + 1 WHERE id = ?", [req.params.id]);
+    const updated = await db.get("SELECT likes FROM uploads WHERE id = ?", [req.params.id]);
+    res.json({ success: true, likes: updated ? updated.likes : 1 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to like post' });
   }
 });
 
@@ -277,12 +295,27 @@ app.delete('/api/admin/uploads/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// Fallback to index.html
+// Vue app (built with `npm run build`) - SPA fallback for client-side routes like /admin
+const DIST_DIR = path.join(__dirname, 'dist');
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/upload')) {
-    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const indexFile = path.join(DIST_DIR, 'index.html');
+    if (!fs.existsSync(indexFile)) {
+      return res.status(503).send('Frontend not built yet. Run: npm run build');
+    }
+    return res.sendFile(indexFile);
   }
   next();
+});
+
+// JSON error handler (multer limits, bad file types, etc.)
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 100MB).' : err.message;
+    return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: msg });
+  }
+  console.error(err);
+  res.status(err.status || 400).json({ error: err.message || 'Something went wrong' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
