@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { api, formatDate } from '../api';
 import { toast } from '../store';
 import Icon from '../components/Icon.vue';
@@ -10,6 +10,7 @@ const isPlaying = ref(true);
 const loading = ref(true);
 const isFullscreen = ref(false);
 const showOverlay = ref(true);
+const videoRef = ref(null);
 let timer = null;
 let overlayTimer = null;
 
@@ -34,36 +35,81 @@ function nextSlide() {
   if (!mediaList.value.length) return;
   currentIndex.value = (currentIndex.value + 1) % mediaList.value.length;
   resetOverlayFade();
+  scheduleNextSlide();
 }
 
 function prevSlide() {
   if (!mediaList.value.length) return;
   currentIndex.value = (currentIndex.value - 1 + mediaList.value.length) % mediaList.value.length;
   resetOverlayFade();
+  scheduleNextSlide();
 }
 
 function togglePlay() {
   isPlaying.value = !isPlaying.value;
   if (isPlaying.value) {
-    startAutoPlay();
+    scheduleNextSlide();
+    if (videoRef.value && currentItem.value?.mimetype?.startsWith('video')) {
+      videoRef.value.play().catch(() => {});
+    }
   } else {
     stopAutoPlay();
+    if (videoRef.value && currentItem.value?.mimetype?.startsWith('video')) {
+      videoRef.value.pause();
+    }
   }
   resetOverlayFade();
 }
 
-function startAutoPlay() {
+function scheduleNextSlide() {
   stopAutoPlay();
-  // 6 seconds per slide for a relaxed cinematic memorial pace
-  timer = setInterval(() => {
+  if (!isPlaying.value || !currentItem.value) return;
+
+  const isVideo = currentItem.value.mimetype?.startsWith('video');
+  if (isVideo) {
+    // For videos: wait until the video finishes playing (@ended event)
+    nextTick(() => {
+      if (videoRef.value) {
+        videoRef.value.play().catch(() => {});
+      }
+    });
+    return;
+  }
+
+  // Photos: wait 6 seconds before advancing
+  timer = setTimeout(() => {
     nextSlide();
   }, 6000);
 }
 
+function startAutoPlay() {
+  scheduleNextSlide();
+}
+
 function stopAutoPlay() {
   if (timer) {
-    clearInterval(timer);
+    clearTimeout(timer);
     timer = null;
+  }
+}
+
+function onVideoEnded() {
+  if (isPlaying.value) {
+    // Gentle 800ms transition delay after video finishes
+    stopAutoPlay();
+    timer = setTimeout(() => {
+      nextSlide();
+    }, 800);
+  }
+}
+
+function onVideoError() {
+  console.warn('Video failed to play or load, advancing to next slide...');
+  if (isPlaying.value) {
+    stopAutoPlay();
+    timer = setTimeout(() => {
+      nextSlide();
+    }, 3000);
   }
 }
 
@@ -218,14 +264,19 @@ onUnmounted(() => {
       >
         <transition name="cinematic-crossfade" mode="out-in">
           <div :key="currentItem.id" class="slide-layer">
-            <!-- Video -->
+            <!-- Video: Plays until finished before auto-advancing -->
             <video 
               v-if="currentItem.mimetype.startsWith('video')" 
+              ref="videoRef"
+              :key="currentItem.id || currentItem.filename"
               :src="`/upload/${currentItem.filename}`" 
               controls 
               autoplay 
               playsinline
               class="slide-fit-media"
+              @ended="onVideoEnded"
+              @error="onVideoError"
+              @click.stop
             ></video>
 
             <!-- Photo with Ken Burns slow subtle zoom effect -->
