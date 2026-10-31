@@ -193,26 +193,31 @@ app.post('/api/tributes', async (req, res) => {
 });
 
 // --- MULTI-FILE UPLOADS (Images and Videos Only) ---
-// Accepts multiple files up to 10 at once
-app.post('/api/upload', requireAuth, upload.array('media', 10), async (req, res) => {
+// Open for ANYONE (no login required). Stored in upload/ and defaults to 'pending' until approved by admin.
+app.post('/api/upload', upload.array('media', 10), async (req, res) => {
   try {
     const files = req.files || [];
     const caption = (req.body.caption || '').trim();
+    const uploaderName = (req.body.uploader_name || '').trim();
 
     if (!files.length) {
       return res.status(400).json({ error: 'Please select at least one image or video to upload.' });
     }
 
-    const status = req.user.role === 'admin' ? 'approved' : 'pending';
-    const uploadedIds = [];
+    // Check if uploader happens to be an authenticated admin
+    const currentUser = await getUser(req);
+    const isAdmin = currentUser && currentUser.role === 'admin';
+    const status = isAdmin ? 'approved' : 'pending';
+
+    const displayName = uploaderName || (currentUser ? currentUser.name : 'Loved One');
+    const userId = currentUser ? currentUser.id : 'guest';
 
     for (const file of files) {
       const id = crypto.randomUUID();
       await db.run(
         'INSERT INTO uploads (id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, req.user.id, req.user.name, file.filename, file.originalname, file.mimetype, file.size, caption, status]
+        [id, userId, displayName, file.filename, file.originalname, file.mimetype, file.size, caption, status]
       );
-      uploadedIds.push(id);
     }
 
     const countText = files.length === 1 ? '1 file' : `${files.length} files`;
@@ -222,7 +227,7 @@ app.post('/api/upload', requireAuth, upload.array('media', 10), async (req, res)
       status: status,
       message: status === 'approved' 
         ? `${countText} uploaded and published to memorial feed!` 
-        : `${countText} uploaded successfully! Stored in upload/ and awaiting admin approval before being shown publicly.`
+        : `${countText} uploaded successfully! Stored in the upload folder and will appear on the main feed and slideshow once approved by admin.`
     });
   } catch (err) {
     console.error(err);
