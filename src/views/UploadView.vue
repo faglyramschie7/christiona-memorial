@@ -139,6 +139,7 @@ async function handleMultiUpload() {
     });
 
     const res = await activeUploadPromise;
+    sessionStorage.setItem('memorial-upload-submitted', 'true');
     toast(res.message || 'Kenangan berhasil dikirim untuk ditinjau! 🕊️');
 
     clearAll();

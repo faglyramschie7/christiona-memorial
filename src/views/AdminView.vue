@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { api, formatDate } from '../api';
+import { api, formatDate, formatFileSize } from '../api';
 import { state, toast } from '../store';
 import { useRouter } from 'vue-router';
 
@@ -185,6 +185,7 @@ const tabs = [
               <strong>Pengirim:</strong> {{ post.user_name || 'Keluarga & Sahabat' }}
             </div>
 
+            <p class="section-desc">Ukuran akhir: {{ formatFileSize((post.media || [post]).reduce((sum, item) => sum + (item.size || 0), 0)) }}</p>
             <div v-if="post.caption" style="font-style: italic; background: rgba(0,0,0,0.25); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.25rem;">
               “{{ post.caption }}”
             </div>

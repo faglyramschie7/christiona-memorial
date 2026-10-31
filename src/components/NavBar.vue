@@ -5,7 +5,8 @@ import { state, logout } from '../store';
 import Icon from './Icon.vue';
 
 const route = useRoute();
-const isSlideshow = computed(() => route.path === '/slideshow');
+const isAdminPage = computed(() => route.path === '/admin' || route.path.startsWith('/admin/'));
+const isSlideshow = computed(() => route.path === '/slideshow' && !!route.query.source);
 </script>
 
 <template>
@@ -28,7 +29,7 @@ const isSlideshow = computed(() => route.path === '/slideshow');
   </header>
 
   <!-- Clean 3-Item Bottom Navigation: Hidden on slideshow -->
-  <nav v-if="!isSlideshow" class="bottom-nav-bar">
+  <nav v-if="!isSlideshow && !isAdminPage" class="bottom-nav-bar">
     <div class="bottom-nav-inner three-tabs">
       <router-link to="/" class="nav-tab" exact-active-class="active">
         <Icon name="home" :size="22" />

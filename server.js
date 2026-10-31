@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('./db');
-const { convertUploadedFile } = require('./mediaConverter');
+const { createUploadQueue } = require('./uploadQueue');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +19,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+const uploadQueue = createUploadQueue(db, UPLOAD_DIR);
 // Multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -204,30 +205,11 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     const userId = currentUser ? currentUser.id : 'guest';
     const postId = crypto.randomUUID();
 
-    // Automatically transcode / optimize: images to WebP and videos to WebM
-    for (const file of files) {
-      await convertUploadedFile(file, UPLOAD_DIR);
-    }
-
-    for (const file of files) {
-      const id = crypto.randomUUID();
-      await db.run(
-        'INSERT INTO uploads (id, post_id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, postId, userId, displayName, file.filename, file.originalname, file.mimetype, file.size, caption, status]
-      );
-    }
-
-    const countText = files.length === 1 ? '1 file' : `${files.length} file`;
-    res.json({
-      success: true,
-      postId: postId,
-      count: files.length,
-      status: status,
-      message: status === 'approved' 
-        ? `${countText} berhasil diunggah dan langsung dipublikasikan!` 
-        : `Unggahan berhasil dikirim! Foto dan video Anda sedang ditinjau oleh pihak keluarga/admin dan akan segera ditampilkan setelah disetujui.`
-    });
+    const jobId = await uploadQueue.enqueue({ kind: 'feed', files, postId, userId, displayName, caption, status });
+    res.status(202).json({ success: true, jobId, postId, count: files.length, status: 'processing',
+      message: 'Unggahan diterima. Media sedang dioptimalkan sebelum ditinjau atau ditampilkan.' });
   } catch (err) {
+    for (const file of req.files || []) { try { fs.unlinkSync(path.join(UPLOAD_DIR, file.filename)); } catch {} }
     console.error(err);
     res.status(500).json({ error: err.message || 'Gagal mengunggah file' });
   }
@@ -257,6 +239,125 @@ app.get('/api/media/approved', async (req, res) => {
 // --- ADMIN MODERATION ENDPOINTS ---
 
 // 1. Grouped by POST (for approving per post instead of per image)
+// Admin-curated performances are separate from public feed submissions.
+async function libraryItems() {
+  await db.run(`CREATE TABLE IF NOT EXISTS library (
+    id TEXT PRIMARY KEY, title TEXT NOT NULL, filename TEXT NOT NULL,
+    mimetype TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  const items = await db.all("SELECT *, title AS caption, 'Christiona Adolfin Mona' AS user_name FROM library ORDER BY created_at DESC");
+  return items.map(item => {
+    let size = null;
+    try { size = fs.statSync(path.join(UPLOAD_DIR, item.filename)).size; } catch {}
+    return { ...item, size };
+  });
+}
+const libraryUpload = multer({ storage, limits: { fileSize: 200 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/.test(file.mimetype))
+});
+app.get('/api/slideshow/library', async (req, res) => {
+  try { res.json(await libraryItems()); }
+  catch { res.status(500).json({ error: 'Gagal memuat koleksi' }); }
+});
+app.post('/api/admin/library', requireAdmin, libraryUpload.single('media'), async (req, res) => {
+  const title = String(req.body.title || '').trim();
+  if (!req.file || !title || title.length > 200) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'Pilih foto/video dan isi judul (maks. 200 karakter).' });
+  }
+  try {
+    await libraryItems();
+    const jobId = await uploadQueue.enqueue({ kind: 'library', files: [req.file], title });
+    res.status(202).json({ success: true, jobId });
+  } catch {
+    fs.unlink(req.file.path, () => {});
+    res.status(500).json({ error: 'Gagal menyimpan koleksi' });
+  }
+});
+app.delete('/api/admin/library/:id', requireAdmin, async (req, res) => {
+  try {
+    await libraryItems();
+    const item = await db.get('SELECT * FROM library WHERE id = ?', [req.params.id]);
+    if (!item) return res.status(404).json({ error: 'Koleksi tidak ditemukan' });
+    await db.run('DELETE FROM library WHERE id = ?', [item.id]);
+    fs.unlink(path.join(UPLOAD_DIR, item.filename), () => {});
+    res.json({ success: true });
+  } catch { res.status(500).json({ error: 'Gagal menghapus koleksi' }); }
+});
+
+const MUSIC_DIR = path.join(UPLOAD_DIR, 'music');
+fs.mkdirSync(MUSIC_DIR, { recursive: true });
+const musicUpload = multer({
+  storage: multer.diskStorage({
+    destination: MUSIC_DIR,
+    filename: (req, file, cb) => cb(null, crypto.randomUUID() + path.extname(file.originalname).toLowerCase())
+  }),
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /\.(mp3|m4a|ogg|wav)$/i.test(file.originalname))
+});
+async function musicSettings() {
+  await slideshowSettings();
+  await db.run('CREATE TABLE IF NOT EXISTS songs (id TEXT PRIMARY KEY, title TEXT NOT NULL, src TEXT NOT NULL)');
+  const songs = [{ id: 'default', title: 'He Leadeth Me', src: '/audio/he-leadeth-me.mp3' }, ...await db.all('SELECT * FROM songs ORDER BY title')];
+  const selected = await db.get("SELECT value FROM settings WHERE key = 'slideshow_song'");
+  return { songs: songs.map(song => {
+    let size = null;
+    try { size = fs.statSync(song.id === 'default' ? path.join(__dirname, 'public/audio/he-leadeth-me.mp3') : path.join(UPLOAD_DIR, 'music', path.basename(song.src))).size; } catch {}
+    return { ...song, size };
+  }), selectedId: selected?.value || 'default' };
+}
+app.get('/api/slideshow/music', async (req, res) => {
+  try { res.json(await musicSettings()); }
+  catch { res.status(500).json({ error: 'Gagal memuat musik' }); }
+});
+app.post('/api/admin/slideshow/music', requireAdmin, musicUpload.single('song'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Pilih file MP3, M4A, OGG, atau WAV.' });
+  try {
+    await musicSettings();
+    const title = String(req.body.title || path.parse(req.file.originalname).name).trim().slice(0, 150) || 'Lagu';
+    const jobId = await uploadQueue.enqueue({ kind: 'music', files: [req.file], title });
+    res.status(202).json({ ...await musicSettings(), jobId });
+  } catch { res.status(500).json({ error: 'Gagal menyimpan lagu' }); }
+});
+app.put('/api/admin/slideshow/music', requireAdmin, async (req, res) => {
+  try {
+    const settings = await musicSettings();
+    if (!settings.songs.some(song => song.id === req.body.selectedId)) return res.status(400).json({ error: 'Lagu tidak ditemukan' });
+    await db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('slideshow_song', ?)", [req.body.selectedId]);
+    res.json({ selectedId: req.body.selectedId });
+  } catch { res.status(500).json({ error: 'Gagal memilih lagu' }); }
+});
+
+app.get('/api/admin/upload-jobs', requireAdmin, async (req, res) => {
+  try { res.json(await uploadQueue.list()); }
+  catch { res.status(500).json({ error: 'Gagal memuat antrean' }); }
+});
+app.post('/api/admin/upload-jobs/:id/retry', requireAdmin, async (req, res) => {
+  try { await uploadQueue.retry(req.params.id); res.json({ success: true }); }
+  catch { res.status(500).json({ error: 'Gagal mencoba ulang' }); }
+});
+// Shared slideshow timing, persisted in the database.
+async function slideshowSettings() {
+  await db.run('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  const row = await db.get("SELECT value FROM settings WHERE key = 'slideshow_seconds'");
+  return { seconds: row ? Number(row.value) : 6 };
+}
+app.get('/api/slideshow/settings', async (req, res) => {
+  try { res.json(await slideshowSettings()); }
+  catch { res.status(500).json({ error: 'Gagal memuat pengaturan slideshow' }); }
+});
+app.put('/api/admin/slideshow/settings', requireAdmin, async (req, res) => {
+  const seconds = req.body.seconds;
+  if (!Number.isInteger(seconds) || seconds < 2 || seconds > 120) {
+    return res.status(400).json({ error: 'Durasi harus antara 2 dan 120 detik.' });
+  }
+  try {
+    await slideshowSettings();
+    await db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('slideshow_seconds', ?)", [String(seconds)]);
+    res.json({ seconds });
+  } catch { res.status(500).json({ error: 'Gagal menyimpan pengaturan slideshow' }); }
+});
+
 app.get('/api/admin/posts', requireAdmin, async (req, res) => {
   try {
     const allUploads = await db.all("SELECT * FROM uploads ORDER BY created_at DESC");
@@ -415,6 +516,8 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 400).json({ error: err.message || 'Terjadi kesalahan sistem' });
 });
+
+Promise.all([libraryItems(), musicSettings()]).then(() => uploadQueue.start()).catch(console.error);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Memorial server is running on http://0.0.0.0:${PORT}`);

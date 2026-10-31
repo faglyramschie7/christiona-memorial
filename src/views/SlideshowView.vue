@@ -1,19 +1,37 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { useRoute } from 'vue-router';
+const route = useRoute();
 import { api, formatDate } from '../api';
 import { toast } from '../store';
+import SlideshowBrowser from '../components/SlideshowBrowser.vue';
 import Icon from '../components/Icon.vue';
 
 const mediaList = ref([]);
+const slideSeconds = ref(6);
 const currentIndex = ref(0);
 const isPlaying = ref(true);
 const loading = ref(true);
 const isFullscreen = ref(false);
 const showOverlay = ref(true);
+const showMemorialHeader = ref(false);
+let memorialHeaderTimer = null;
+
+function onMouseMove() {
+  resetOverlayFade();
+  showMemorialHeader.value = true;
+  if (memorialHeaderTimer) clearTimeout(memorialHeaderTimer);
+  memorialHeaderTimer = setTimeout(() => {
+    showMemorialHeader.value = false;
+  }, 3500);
+}
 const videoRef = ref(null);
 const musicRef = ref(null);
+const musicSrc = ref('/audio/he-leadeth-me.mp3');
+const backgroundMusicEnabled = computed(() => route.query.source === 'feed');
 function playMusic() {
   if (!musicRef.value) return;
+  if (!backgroundMusicEnabled.value) { musicRef.value.pause(); return; }
   musicRef.value.volume = currentItem.value?.mimetype?.startsWith('video') ? 0.25 : 0.6;
   if (isPlaying.value && currentItem.value) musicRef.value.play().catch(() => {});
 }
@@ -33,7 +51,9 @@ watch([isPlaying, currentItem], () => {
 async function loadMedia() {
   loading.value = true;
   try {
-    const all = await api.approved();
+    const [feed, library] = await Promise.all([api.approved(), api.library()]);
+    const source = route.query.source;
+    const all = source === 'feed' ? feed : source && source !== 'all' ? library.filter(item => item.id === source) : [...feed, ...library];
     mediaList.value = all.filter(item => item.filename && item.filename.length > 0);
   } catch (e) {
     toast('Failed to load memorial media', 'error');
@@ -87,10 +107,12 @@ function scheduleNextSlide() {
     return;
   }
 
-  // Photos: wait 6 seconds before advancing
+  // Only photos use the configured duration.
+  const scheduledItem = currentItem.value;
   timer = setTimeout(() => {
+    if (currentItem.value !== scheduledItem || videoRef.value || currentItem.value?.mimetype?.startsWith('video')) return;
     nextSlide();
-  }, 6000);
+  }, slideSeconds.value * 1000);
 }
 
 function startAutoPlay() {
@@ -104,24 +126,30 @@ function stopAutoPlay() {
   }
 }
 
-function onVideoEnded() {
+function onVideoEnded(event) {
+  // Ignore stale events from a video that is leaving the stage.
+  if (event.target !== videoRef.value || !event.target.ended) return;
+  stopAutoPlay();
+  if (route.query.source !== 'feed') {
+    if (isPlaying.value) {
+      event.target.currentTime = 0;
+      event.target.play().catch(() => {});
+    }
+    return;
+  }
   if (isPlaying.value) {
-    // Gentle 800ms transition delay after video finishes
-    stopAutoPlay();
+    const endedVideo = event.target;
     timer = setTimeout(() => {
-      nextSlide();
+      if (isPlaying.value && videoRef.value === endedVideo && endedVideo.ended) nextSlide();
     }, 800);
   }
 }
 
-function onVideoError() {
-  console.warn('Video failed to play or load, advancing to next slide...');
-  if (isPlaying.value) {
-    stopAutoPlay();
-    timer = setTimeout(() => {
-      nextSlide();
-    }, 3000);
-  }
+function onVideoError(event) {
+  if (event.target !== videoRef.value) return;
+  stopAutoPlay();
+  isPlaying.value = false;
+  toast('Video gagal dimuat. Silakan coba putar lagi.', 'error');
 }
 
 function toggleNativeFullscreen() {
@@ -146,7 +174,9 @@ function resetOverlayFade() {
 }
 
 function handleKeydown(e) {
-  if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+  if (e.target instanceof Element && e.target.closest('video, button, a, input, textarea, select, [contenteditable]')) return;
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); return; }
+  if (e.key === 'ArrowRight') nextSlide();
   if (e.key === 'ArrowLeft') prevSlide();
   if (e.key === 'f' || e.key === 'F') toggleNativeFullscreen();
   resetOverlayFade();
@@ -201,6 +231,14 @@ function handleStageClick() {
 }
 
 onMounted(async () => {
+  try {
+    const settings = await api.slideshowSettings();
+    if (Number.isInteger(settings.seconds) && settings.seconds >= 2 && settings.seconds <= 120) slideSeconds.value = settings.seconds;
+  } catch { /* Keep the default timing when settings are unavailable. */ }
+  try {
+    const music = await api.slideshowMusic();
+    musicSrc.value = music.songs.find(song => song.id === music.selectedId)?.src || musicSrc.value;
+  } catch { /* Use the original song if unavailable. */ }
   await loadMedia();
   playMusic();
   window.addEventListener('pointerdown', playMusic);
@@ -216,6 +254,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  if (memorialHeaderTimer) clearTimeout(memorialHeaderTimer);
   musicRef.value?.pause();
   window.removeEventListener('pointerdown', playMusic);
   window.removeEventListener('keydown', playMusic);
@@ -231,12 +270,12 @@ onUnmounted(() => {
 <template>
   <div 
     class="cinematic-slideshow-view" 
-    :class="{ 'ui-hidden': !showOverlay }"
-    @mousemove="resetOverlayFade" 
+    :class="{ 'ui-hidden': !showOverlay, 'memorial-header-hidden': isFullscreen && !showMemorialHeader }"
+    @mousemove="onMouseMove" 
     @touchstart="resetOverlayFade"
     @click="resetOverlayFade"
   >
-    <audio ref="musicRef" src="/audio/he-leadeth-me.mp3" loop preload="auto"></audio>
+    <audio v-if="backgroundMusicEnabled" ref="musicRef" :src="musicSrc" loop preload="auto"></audio>
     <!-- Dynamic Ambient Backdrop Glow -->
     <div 
       v-if="currentItem && !currentItem.mimetype.startsWith('video')" 
@@ -310,6 +349,7 @@ onUnmounted(() => {
 
         <!-- Previous / Next Controls -->
         <button 
+          v-if="mediaList.length > 1"
           class="stage-arrow arrow-left" 
           @click.stop="prevSlide" 
           title="Previous"
@@ -317,6 +357,7 @@ onUnmounted(() => {
           <Icon name="chevron-left" :size="34" />
         </button>
         <button 
+          v-if="mediaList.length > 1"
           class="stage-arrow arrow-right" 
           @click.stop="nextSlide" 
           title="Next"
@@ -328,7 +369,7 @@ onUnmounted(() => {
       <!-- Top Overlay: Minimal Memorial Header with Back button -->
       <header class="stage-top-overlay">
         <div class="subject-tag" style="display:flex; align-items:center; gap: 0.85rem;">
-          <router-link to="/" class="fs-btn-icon" title="Exit to Feed">
+          <router-link to="/slideshow" class="fs-btn-icon" title="Exit to Feed">
             <Icon name="arrow-left" :size="20" />
           </router-link>
           <div>
@@ -370,5 +411,6 @@ onUnmounted(() => {
         </div>
       </footer>
     </template>
+    <SlideshowBrowser />
   </div>
 </template>

@@ -11,10 +11,10 @@ const router = useRouter();
 
       <div class="status-badge-pill">
         <span class="status-pulse-dot"></span>
-        Sedang Ditinjau
+        Sedang Diproses
       </div>
 
-      <h1 class="review-status-title">Kenangan Anda Sedang Ditinjau</h1>
+      <h1 class="review-status-title">Kenangan Anda Sedang Diproses</h1>
 
       <p class="review-status-subtitle">
         Terima kasih yang mendalam telah berbagi kenangan indah dan penuh cinta untuk 
@@ -34,7 +34,7 @@ const router = useRouter();
           <span class="info-icon">🛡️</span>
           <div>
             <strong>Tahap Persetujuan Keluarga &amp; Admin</strong>
-            <p>Untuk menjaga ketertiban dan kenyamanan seluruh keluarga, semua kiriman ditinjau terlebih dahulu sebelum dipublikasikan.</p>
+            <p>Media dioptimalkan terlebih dahulu. Untuk menjaga ketertiban dan kenyamanan seluruh keluarga, semua kiriman ditinjau terlebih dahulu sebelum dipublikasikan.</p>
           </div>
         </div>
 

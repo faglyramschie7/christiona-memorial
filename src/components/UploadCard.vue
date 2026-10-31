@@ -100,6 +100,7 @@ async function submit() {
     });
 
     const res = await activeUploadPromise;
+    sessionStorage.setItem('memorial-upload-submitted', 'true');
     message.value = res.message;
     toast(res.message || 'Kenangan berhasil dikirim untuk ditinjau! 🕊️');
     removePicked();

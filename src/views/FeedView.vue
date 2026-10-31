@@ -193,9 +193,11 @@ onMounted(loadFeed);
                 v-if="getActiveMedia(post).mimetype.startsWith('video')" 
                 :key="getActiveMedia(post).id || getActiveMedia(post).filename"
                 :src="`/upload/${getActiveMedia(post).filename}#t=0.1`" 
-                controls 
+                muted
                 preload="metadata"
                 playsinline
+                style="pointer-events: none;"
+                @play="$event.target.pause()"
               ></video>
               <img 
                 v-else 

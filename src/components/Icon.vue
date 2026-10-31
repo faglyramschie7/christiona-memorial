@@ -16,6 +16,11 @@
       <polyline points="9 22 9 12 15 12 15 22" />
     </g>
 
+    <g v-else-if="name === 'settings'">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="17" r="3" fill="currentColor" stroke="none" />
+    </g>
     <!-- Upload -->
     <g v-else-if="name === 'upload'">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

@@ -463,11 +463,7 @@ code {
   pointer-events: none;
 }
 
-.ui-hidden .stage-bottom-overlay {
-  opacity: 0;
-  transform: translateY(25px);
-  pointer-events: none;
-}
+/* Keep the post caption and attribution visible for the entire slide. */
 
 .ui-hidden .stage-arrow {
   opacity: 0;
@@ -2328,3 +2324,21 @@ button.btn, a.btn {
   color: var(--text-muted);
   border: 1px solid rgba(154, 162, 181, 0.4);
 }
+
+/* In fullscreen, reveal the memorial heading only with mouse movement. */
+.memorial-header-hidden .stage-top-overlay .subject-tag {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cinematic-slideshow-view .fs-btn-icon,
+.cinematic-slideshow-view .fs-btn-icon:visited {
+  color: var(--gold);
+}
+
+/* Admin pages do not need space reserved for the public bottom navigation. */
+body:has(.admin-layout) { padding-bottom: 0; }
+
+.footer.admin-footer { padding: .75rem 1.25rem; font-size: .78rem; }
+.footer.admin-footer p { margin: 0; }
+.footer.admin-footer .footer-sub { margin-top: .2rem; }

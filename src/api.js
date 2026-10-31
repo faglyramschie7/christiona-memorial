@@ -21,6 +21,28 @@ const json = (method, body) => ({
   body: JSON.stringify(body)
 });
 
+function uploadWithProgress(url, body) {
+  const id = crypto.randomUUID();
+  const title = body.get('title') || body.get('song')?.name || 'Media';
+  const report = (percent, active = true) => window.dispatchEvent(new CustomEvent('admin-upload-progress', { detail: { id, title, percent, active, kind: url.includes('/library') ? 'library' : 'music' } }));
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.upload.onprogress = event => { if (event.lengthComputable) report(Math.round(event.loaded / event.total * 100)); };
+    xhr.onload = () => {
+      report(100, false);
+      let data;
+      try { data = JSON.parse(xhr.responseText); } catch { reject(new Error('Respons server tidak valid.')); return; }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new Error(data.error || `Upload gagal (HTTP ${xhr.status})`));
+    };
+    xhr.onerror = () => { report(0, false); reject(new Error('Koneksi terputus. Silakan coba lagi.')); };
+    xhr.onabort = () => { report(0, false); reject(new Error('Unggahan dibatalkan.')); };
+    report(0);
+    xhr.send(body);
+  });
+}
+
 export const api = {
   session: () => request('/api/auth/session'),
   login: (b) => request('/api/auth/login', json('POST', b)),
@@ -30,6 +52,16 @@ export const api = {
   tributes: () => request('/api/tributes'),
   postTribute: (b) => request('/api/tributes', json('POST', b)),
 
+  uploadJobs: () => request('/api/admin/upload-jobs'),
+  retryUploadJob: (id) => request(`/api/admin/upload-jobs/${id}/retry`, { method: 'POST' }),
+  library: () => request('/api/slideshow/library'),
+  uploadLibrary: (body) => uploadWithProgress('/api/admin/library', body),
+  removeLibrary: (id) => request(`/api/admin/library/${id}`, { method: 'DELETE' }),
+  slideshowMusic: () => request('/api/slideshow/music'),
+  uploadSong: (body) => uploadWithProgress('/api/admin/slideshow/music', body),
+  selectSong: (selectedId) => request('/api/admin/slideshow/music', json('PUT', { selectedId })),
+  slideshowSettings: () => request('/api/slideshow/settings'),
+  saveSlideshowSettings: (b) => request('/api/admin/slideshow/settings', json('PUT', b)),
   approved: () => request('/api/media/approved'),
   like: (id) => request(`/api/media/${id}/like`, { method: 'POST' }),
 
@@ -100,4 +132,11 @@ export function formatDate(s) {
   const d = new Date(s.replace(' ', 'T') + 'Z');
   if (isNaN(d)) return s;
   return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatFileSize(bytes) {
+  if (bytes == null || !Number.isFinite(bytes)) return 'Ukuran tidak tersedia';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
