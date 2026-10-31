@@ -38,6 +38,12 @@ export const api = {
   reject: (id) => request(`/api/admin/uploads/${id}/reject`, { method: 'POST' }),
   remove: (id) => request(`/api/admin/uploads/${id}`, { method: 'DELETE' }),
 
+  // Admin post-level moderation (approve/reject/delete all media in a post)
+  adminPosts: () => request('/api/admin/posts'),
+  approvePost: (postId) => request(`/api/admin/posts/${postId}/approve`, { method: 'POST' }),
+  rejectPost: (postId) => request(`/api/admin/posts/${postId}/reject`, { method: 'POST' }),
+  removePost: (postId) => request(`/api/admin/posts/${postId}`, { method: 'DELETE' }),
+
   // Upload with progress (fetch cannot report upload progress)
   upload(formData, onProgress, options = {}) {
     let xhr;
@@ -91,5 +97,5 @@ export function formatDate(s) {
   if (!s) return '';
   const d = new Date(s.replace(' ', 'T') + 'Z');
   if (isNaN(d)) return s;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

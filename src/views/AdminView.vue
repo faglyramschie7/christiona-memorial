@@ -5,24 +5,29 @@ import { state, toast } from '../store';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const items = ref([]);
+const posts = ref([]);
 const filter = ref('pending');
 const loading = ref(false);
 const busyId = ref('');
 
 const isAdmin = computed(() => state.user?.role === 'admin');
+
 const counts = computed(() => ({
-  pending: items.value.filter((i) => i.status === 'pending').length,
-  approved: items.value.filter((i) => i.status === 'approved').length,
-  rejected: items.value.filter((i) => i.status === 'rejected').length,
-  all: items.value.length
+  pending: posts.value.filter((p) => p.status === 'pending').length,
+  approved: posts.value.filter((p) => p.status === 'approved').length,
+  rejected: posts.value.filter((p) => p.status === 'rejected').length,
+  all: posts.value.length
 }));
-const shown = computed(() => (filter.value === 'all' ? items.value : items.value.filter((i) => i.status === filter.value)));
+
+const shownPosts = computed(() => {
+  if (filter.value === 'all') return posts.value;
+  return posts.value.filter((p) => p.status === filter.value);
+});
 
 async function load() {
   loading.value = true;
   try {
-    items.value = await api.adminList();
+    posts.value = await api.adminPosts();
   } catch (e) {
     toast(e.message, 'error');
   } finally {
@@ -43,10 +48,20 @@ async function act(fn, id, okMsg) {
   }
 }
 
-const approve = (i) => act(api.approve, i.id, 'Approved and published');
-const reject = (i) => act(api.reject, i.id, 'Rejected');
-const remove = (i) => confirm('Delete this file permanently?') && act(api.remove, i.id, 'Deleted');
-const open = (i) => (state.lightbox = { src: `/upload/${i.filename}`, video: i.mimetype.startsWith('video') });
+const approvePost = (p) => act(api.approvePost, p.post_id, 'Postingan berhasil disetujui dan dipublikasikan! 🕊️');
+const rejectPost = (p) => act(api.rejectPost, p.post_id, 'Postingan telah ditolak.');
+const removePost = (p) => {
+  if (confirm('Hapus seluruh postingan ini beserta semua file fotonya secara permanen?')) {
+    act(api.removePost, p.post_id, 'Postingan dan file telah dihapus permanen.');
+  }
+};
+
+const open = (mediaItem) => {
+  state.lightbox = {
+    src: `/upload/${mediaItem.filename}`,
+    video: mediaItem.mimetype?.startsWith('video')
+  };
+};
 
 watch(
   () => [state.sessionLoaded, isAdmin.value],
@@ -58,60 +73,147 @@ watch(
 );
 
 const tabs = [
-  ['pending', 'Pending'],
-  ['approved', 'Approved'],
-  ['rejected', 'Rejected'],
-  ['all', 'All']
+  ['pending', 'Menunggu'],
+  ['approved', 'Disetujui'],
+  ['rejected', 'Ditolak'],
+  ['all', 'Semua']
 ];
 </script>
 
 <template>
   <main class="main-container admin-page">
-    <div v-if="!state.sessionLoaded" class="empty-state">Loading…</div>
+    <div v-if="!state.sessionLoaded" class="empty-state">Memuat data...</div>
 
     <div v-else-if="!isAdmin" class="card login-prompt-box">
       <div style="font-size: 2rem">🛡️</div>
-      <h3>Admin only</h3>
-      <p>Sign in with the admin account to review uploads.</p>
-      <button class="btn btn-primary" @click="state.authOpen = true; state.authMode = 'login'">Sign In</button>
-      <button class="btn btn-outline" style="margin-left: .5rem" @click="router.push('/')">Back</button>
+      <h3>Khusus Akun Admin</h3>
+      <p>Silakan masuk dengan akun admin untuk meninjau dan mengelola kiriman kenangan.</p>
+      <button class="btn btn-primary" @click="state.authOpen = true; state.authMode = 'login'">Masuk sebagai Admin</button>
+      <button class="btn btn-outline" style="margin-left: .5rem" @click="router.push('/')">Kembali ke Beranda</button>
     </div>
 
     <section v-else>
       <div class="section-header">
         <div>
           <span class="badge admin-badge">Admin</span>
-          <h2>Review Uploads</h2>
-          <p class="section-desc">Only approved files appear on the public gallery.</p>
+          <h2>Tinjau Kiriman Kenangan</h2>
+          <p class="section-desc">Persetujuan dilakukan <strong>per postingan</strong>. Semua foto/video dalam satu postingan disetujui atau ditolak bersamaan.</p>
         </div>
-        <button class="btn btn-outline btn-sm" :disabled="loading" @click="load">↻ Refresh</button>
+        <button class="btn btn-outline btn-sm" :disabled="loading" @click="load">↻ Segarkan Data</button>
       </div>
 
       <div class="filter-tabs">
-        <button v-for="[key, label] in tabs" :key="key" class="tab-btn" :class="{ active: filter === key }" @click="filter = key">
+        <button 
+          v-for="[key, label] in tabs" 
+          :key="key" 
+          class="tab-btn" 
+          :class="{ active: filter === key }" 
+          @click="filter = key"
+        >
           {{ label }} ({{ counts[key] }})
         </button>
       </div>
 
-      <div v-if="!shown.length" class="empty-state">Nothing here.</div>
+      <div v-if="!shownPosts.length" class="empty-state">
+        <p style="font-size: 1.8rem; margin-bottom: 0.5rem;">🕊️</p>
+        <p>Tidak ada postingan pada kategori ini.</p>
+      </div>
+
       <div v-else class="admin-grid">
-        <article v-for="i in shown" :key="i.id" class="admin-card">
-          <div class="admin-card-media" style="cursor: zoom-in" @click="open(i)">
-            <video v-if="i.mimetype.startsWith('video')" :src="`/upload/${i.filename}#t=0.1`" preload="metadata" muted></video>
-            <img v-else :src="`/upload/${i.filename}`" :alt="i.original_name" loading="lazy" />
-          </div>
-          <div class="admin-card-body">
-            <div style="display: flex; justify-content: space-between; align-items: center">
-              <span class="status-tag" :class="`status-${i.status}`">{{ i.status.toUpperCase() }}</span>
-              <small style="color: var(--muted)">{{ formatDate(i.created_at) }}</small>
+        <article v-for="post in shownPosts" :key="post.post_id" class="admin-card">
+          <!-- Media Showcase (All photos/videos in this post) -->
+          <div class="admin-post-media-wrap">
+            <span class="admin-media-count-badge">
+              {{ (post.media && post.media.length > 1) ? `📸 ${post.media.length} File` : '1 Media' }}
+            </span>
+
+            <!-- Single media layout -->
+            <div 
+              v-if="!post.media || post.media.length <= 1" 
+              class="admin-card-media" 
+              style="cursor: zoom-in" 
+              @click="open(post.media?.[0] || post)"
+            >
+              <video 
+                v-if="post.media?.[0]?.mimetype?.startsWith('video')" 
+                :src="`/upload/${post.media[0].filename}#t=0.1`" 
+                preload="metadata" 
+                muted
+              ></video>
+              <img 
+                v-else-if="post.media?.[0]" 
+                :src="`/upload/${post.media[0].filename}`" 
+                :alt="post.media[0].original_name" 
+                loading="lazy" 
+              />
             </div>
-            <div><strong>From:</strong> {{ i.user_name || 'User' }}</div>
-            <div style="word-break: break-all"><strong>File:</strong> <code>{{ i.filename }}</code></div>
-            <div v-if="i.caption" style="font-style: italic">“{{ i.caption }}”</div>
+
+            <!-- Multi-media grid layout -->
+            <div v-else class="admin-media-grid">
+              <div 
+                v-for="m in post.media" 
+                :key="m.id" 
+                class="admin-sub-media" 
+                @click="open(m)"
+                title="Klik untuk memperbesar"
+              >
+                <video 
+                  v-if="m.mimetype.startsWith('video')" 
+                  :src="`/upload/${m.filename}#t=0.1`" 
+                  preload="metadata" 
+                  muted
+                ></video>
+                <img v-else :src="`/upload/${m.filename}`" :alt="m.original_name" loading="lazy" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Information Body -->
+          <div class="admin-card-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <span class="status-tag" :class="`status-${post.status}`">
+                {{ post.status === 'approved' ? 'DISETUJUI' : (post.status === 'rejected' ? 'DITOLAK' : 'MENUNGGU') }}
+              </span>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">{{ formatDate(post.created_at) }}</small>
+            </div>
+
+            <div>
+              <strong>Pengirim:</strong> {{ post.user_name || 'Keluarga & Sahabat' }}
+            </div>
+
+            <div v-if="post.caption" style="font-style: italic; background: rgba(0,0,0,0.25); padding: 0.4rem 0.6rem; border-radius: 6px; margin-top: 0.25rem;">
+              “{{ post.caption }}”
+            </div>
+
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+              ID Post: <code>{{ post.post_id?.slice(0, 8) }}...</code> ({{ post.media?.length || 1 }} file)
+            </div>
+
+            <!-- Actions Per Post -->
             <div class="admin-card-actions">
-              <button v-if="i.status !== 'approved'" class="btn btn-sm btn-success" :disabled="busyId === i.id" @click="approve(i)">Approve</button>
-              <button v-if="i.status !== 'rejected'" class="btn btn-sm btn-danger" :disabled="busyId === i.id" @click="reject(i)">Reject</button>
-              <button class="btn btn-sm btn-outline" :disabled="busyId === i.id" @click="remove(i)">Delete</button>
+              <button 
+                v-if="post.status !== 'approved'" 
+                class="btn btn-sm btn-success" 
+                :disabled="busyId === post.post_id" 
+                @click="approvePost(post)"
+              >
+                ✓ Setujui Postingan
+              </button>
+              <button 
+                v-if="post.status !== 'rejected'" 
+                class="btn btn-sm btn-danger" 
+                :disabled="busyId === post.post_id" 
+                @click="rejectPost(post)"
+              >
+                ✕ Tolak Postingan
+              </button>
+              <button 
+                class="btn btn-sm btn-outline" 
+                :disabled="busyId === post.post_id" 
+                @click="removePost(post)"
+              >
+                🗑️ Hapus Postingan
+              </button>
             </div>
           </div>
         </article>

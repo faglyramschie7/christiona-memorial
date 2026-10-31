@@ -41,6 +41,7 @@ class MemorialDB {
 
       CREATE TABLE IF NOT EXISTS uploads (
         id TEXT PRIMARY KEY,
+        post_id TEXT,
         user_id TEXT,
         user_name TEXT,
         filename TEXT NOT NULL,
@@ -49,9 +50,23 @@ class MemorialDB {
         size INTEGER,
         caption TEXT,
         status TEXT DEFAULT 'pending',
+        likes INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Ensure post_id exists in existing database
+    try {
+      this.db.run('ALTER TABLE uploads ADD COLUMN post_id TEXT;');
+    } catch (e) {
+      // Column already exists
+    }
+    // Set post_id for older entries
+    try {
+      this.db.run("UPDATE uploads SET post_id = id WHERE post_id IS NULL OR post_id = '';");
+    } catch (e) {
+      // ignore
+    }
 
     this.save();
     return this.db;

@@ -32,7 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for video/image
+  limits: { fileSize: 10 * 1024 * 1024 }, // Maksimal 10MB per file
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp|mp4|webm|mov|quicktime/;
     const ext = path.extname(file.originalname).toLowerCase();
@@ -40,7 +40,7 @@ const upload = multer({
     if (allowed.test(ext) || allowed.test(mime)) {
       cb(null, true);
     } else {
-      cb(new Error('Only images and video files are permitted'));
+      cb(new Error('Hanya file gambar dan video yang diperbolehkan'));
     }
   }
 });
@@ -201,7 +201,17 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     const uploaderName = (req.body.uploader_name || '').trim();
 
     if (!files.length) {
-      return res.status(400).json({ error: 'Please select at least one image or video to upload.' });
+      return res.status(400).json({ error: 'Silakan pilih setidaknya satu foto atau video untuk diunggah.' });
+    }
+
+    // Enforce 10MB total batch upload limit
+    const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+    const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10MB total
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      for (const file of files) {
+        try { fs.unlinkSync(path.join(UPLOAD_DIR, file.filename)); } catch (e) {}
+      }
+      return res.status(400).json({ error: 'Total ukuran seluruh file melebihi batas 10 MB. Silakan kurangi file atau gunakan ukuran yang lebih kecil.' });
     }
 
     // Check if uploader happens to be an authenticated admin
@@ -209,29 +219,31 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     const isAdmin = currentUser && currentUser.role === 'admin';
     const status = isAdmin ? 'approved' : 'pending';
 
-    const displayName = uploaderName || (currentUser ? currentUser.name : 'Loved One');
+    const displayName = uploaderName || (currentUser ? currentUser.name : 'Keluarga & Kerabat');
     const userId = currentUser ? currentUser.id : 'guest';
+    const postId = crypto.randomUUID();
 
     for (const file of files) {
       const id = crypto.randomUUID();
       await db.run(
-        'INSERT INTO uploads (id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, userId, displayName, file.filename, file.originalname, file.mimetype, file.size, caption, status]
+        'INSERT INTO uploads (id, post_id, user_id, user_name, filename, original_name, mimetype, size, caption, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, postId, userId, displayName, file.filename, file.originalname, file.mimetype, file.size, caption, status]
       );
     }
 
-    const countText = files.length === 1 ? '1 file' : `${files.length} files`;
+    const countText = files.length === 1 ? '1 file' : `${files.length} file`;
     res.json({
       success: true,
+      postId: postId,
       count: files.length,
       status: status,
       message: status === 'approved' 
-        ? `${countText} uploaded and published to memorial feed!` 
-        : `${countText} uploaded successfully! Stored in the upload folder and will appear on the main feed and slideshow once approved by admin.`
+        ? `${countText} berhasil diunggah dan langsung dipublikasikan!` 
+        : `Unggahan berhasil dikirim! Foto dan video Anda sedang ditinjau oleh pihak keluarga/admin dan akan segera ditampilkan setelah disetujui.`
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message || 'Upload failed' });
+    res.status(500).json({ error: err.message || 'Gagal mengunggah file' });
   }
 });
 
@@ -252,35 +264,108 @@ app.get('/api/media/approved', async (req, res) => {
     const list = await db.all("SELECT * FROM uploads WHERE status = 'approved' ORDER BY created_at DESC");
     res.json(list);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to retrieve media' });
+    res.status(500).json({ error: 'Gagal mengambil data media' });
   }
 });
 
 // --- ADMIN MODERATION ENDPOINTS ---
+
+// 1. Grouped by POST (for approving per post instead of per image)
+app.get('/api/admin/posts', requireAdmin, async (req, res) => {
+  try {
+    const allUploads = await db.all("SELECT * FROM uploads ORDER BY created_at DESC");
+    const postsMap = new Map();
+
+    for (const item of allUploads) {
+      const pid = item.post_id || item.id;
+      if (!postsMap.has(pid)) {
+        postsMap.set(pid, {
+          id: pid,
+          post_id: pid,
+          user_id: item.user_id,
+          user_name: item.user_name,
+          caption: item.caption,
+          status: item.status,
+          created_at: item.created_at,
+          likes: item.likes || 0,
+          media: []
+        });
+      }
+      postsMap.get(pid).media.push(item);
+    }
+
+    res.json(Array.from(postsMap.values()));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gagal memuat daftar kiriman admin' });
+  }
+});
+
+// Approve entire post (all images/videos under this post_id)
+app.post('/api/admin/posts/:postId/approve', requireAdmin, async (req, res) => {
+  try {
+    const pid = req.params.postId;
+    await db.run("UPDATE uploads SET status = 'approved' WHERE post_id = ? OR id = ?", [pid, pid]);
+    res.json({ success: true, message: 'Postingan berhasil disetujui dan dipublikasikan ke feed!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menyetujui postingan' });
+  }
+});
+
+// Reject entire post
+app.post('/api/admin/posts/:postId/reject', requireAdmin, async (req, res) => {
+  try {
+    const pid = req.params.postId;
+    await db.run("UPDATE uploads SET status = 'rejected' WHERE post_id = ? OR id = ?", [pid, pid]);
+    res.json({ success: true, message: 'Postingan telah ditolak' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menolak postingan' });
+  }
+});
+
+// Delete entire post (and remove all associated files from disk)
+app.delete('/api/admin/posts/:postId', requireAdmin, async (req, res) => {
+  try {
+    const pid = req.params.postId;
+    const items = await db.all('SELECT * FROM uploads WHERE post_id = ? OR id = ?', [pid, pid]);
+    for (const item of items) {
+      const filePath = path.join(UPLOAD_DIR, item.filename);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {}
+      }
+    }
+    await db.run('DELETE FROM uploads WHERE post_id = ? OR id = ?', [pid, pid]);
+    res.json({ success: true, message: 'Postingan berhasil dihapus permanen' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menghapus postingan' });
+  }
+});
+
+// Legacy single-item endpoints (kept for compatibility)
 app.get('/api/admin/uploads', requireAdmin, async (req, res) => {
   try {
     const list = await db.all("SELECT * FROM uploads ORDER BY created_at DESC");
     res.json(list);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to retrieve admin list' });
+    res.status(500).json({ error: 'Gagal memuat daftar unggahan' });
   }
 });
 
 app.post('/api/admin/uploads/:id/approve', requireAdmin, async (req, res) => {
   try {
     await db.run("UPDATE uploads SET status = 'approved' WHERE id = ?", [req.params.id]);
-    res.json({ success: true, message: 'Media approved and published' });
+    res.json({ success: true, message: 'Media disetujui' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to approve media' });
+    res.status(500).json({ error: 'Gagal menyetujui media' });
   }
 });
 
 app.post('/api/admin/uploads/:id/reject', requireAdmin, async (req, res) => {
   try {
     await db.run("UPDATE uploads SET status = 'rejected' WHERE id = ?", [req.params.id]);
-    res.json({ success: true, message: 'Media rejected' });
+    res.json({ success: true, message: 'Media ditolak' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to reject media' });
+    res.status(500).json({ error: 'Gagal menolak media' });
   }
 });
 
@@ -290,13 +375,13 @@ app.delete('/api/admin/uploads/:id', requireAdmin, async (req, res) => {
     if (item) {
       const filePath = path.join(UPLOAD_DIR, item.filename);
       if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+        try { fs.unlinkSync(filePath); } catch (e) {}
       }
       await db.run('DELETE FROM uploads WHERE id = ?', [req.params.id]);
     }
-    res.json({ success: true, message: 'Media removed permanently' });
+    res.json({ success: true, message: 'Media berhasil dihapus' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete media' });
+    res.status(500).json({ error: 'Gagal menghapus media' });
   }
 });
 
@@ -316,11 +401,11 @@ app.use((req, res, next) => {
 // JSON error handler (multer limits, bad file types, etc.)
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 100MB).' : err.message;
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Ukuran file melebihi batas maksimal (10 MB).' : err.message;
     return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: msg });
   }
   console.error(err);
-  res.status(err.status || 400).json({ error: err.message || 'Something went wrong' });
+  res.status(err.status || 400).json({ error: err.message || 'Terjadi kesalahan sistem' });
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {

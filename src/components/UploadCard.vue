@@ -1,7 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { api } from '../api';
 import { state, toast } from '../store';
+
+const router = useRouter();
 
 const file = ref(null);
 const uploaderName = ref(state.user ? state.user.name : '');
@@ -16,8 +19,8 @@ const message = ref('');
 const input = ref(null);
 let activeUploadPromise = null;
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-const HEAVY_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const HEAVY_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 function formatBytes(bytes) {
   if (!bytes || bytes <= 0) return '0 MB';
@@ -38,7 +41,7 @@ function pick(f) {
   const isMedia = f.type.startsWith('image/') || f.type.startsWith('video/') ||
     /\.(jpe?g|png|webp|gif|mp4|webm|mov|quicktime|m4v)$/i.test(f.name);
   if (!isMedia) {
-    return toast('Please choose an image or video file.', 'error');
+    return toast('Silakan pilih file foto atau video.', 'error');
   }
 
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
@@ -66,13 +69,13 @@ function cancelUpload() {
     activeUploadPromise.abort();
   }
   uploading.value = false;
-  toast('Upload cancelled.', 'info');
+  toast('Unggahan dibatalkan.', 'info');
 }
 
 async function submit() {
   if (!file.value) return;
   if (isOversized.value) {
-    return toast('Cannot upload: File exceeds the 100MB server limit.', 'error');
+    return toast('File melebihi batas maksimal 10 MB.', 'error');
   }
 
   const fd = new FormData();
@@ -98,10 +101,14 @@ async function submit() {
 
     const res = await activeUploadPromise;
     message.value = res.message;
-    toast(res.message || 'Thank you for sharing a memory 🕊️');
+    toast(res.message || 'Kenangan berhasil dikirim untuk ditinjau! 🕊️');
     removePicked();
     caption.value = '';
     emit('uploaded');
+
+    setTimeout(() => {
+      router.push('/review-status');
+    }, 600);
   } catch (e) {
     toast(e.message, 'error');
   } finally {
@@ -118,9 +125,9 @@ const emit = defineEmits(['uploaded']);
     <div class="card-header">
       <div class="header-icon">📷</div>
       <div>
-        <h2>Share a Photo or Video</h2>
+        <h2>Bagikan Foto atau Video</h2>
         <p class="section-desc">
-          Anyone can upload photos and videos in memory of Christiona. All files are safely stored in the <code>upload/</code> folder and will appear after admin approval.
+          Siapa pun dapat mengunggah kenangan foto atau video untuk Christiona. Semua file tersimpan di server dan akan tampil setelah disetujui keluarga/admin.
         </p>
       </div>
     </div>
@@ -135,17 +142,17 @@ const emit = defineEmits(['uploaded']);
         @drop.prevent="onDrop"
       >
         <div style="font-size: 2rem">⬆️</div>
-        <p class="dropzone-text">{{ file ? 'Choose a different file' : 'Click or drop a photo or video here' }}</p>
-        <span class="dropzone-sub">Open for everyone • JPG, PNG, WEBP, MP4, WEBM — up to 100MB</span>
+        <p class="dropzone-text">{{ file ? 'Pilih file lain' : 'Klik atau seret & lepas foto / video di sini' }}</p>
+        <span class="dropzone-sub">Terbuka untuk semua • JPG, PNG, WEBP, MP4 — Maksimal 10 MB</span>
         <input ref="input" type="file" accept="image/*,video/*" hidden @change="pick($event.target.files[0])" />
       </div>
 
       <div v-if="file" class="preview-area" style="position: relative; margin-top: 1rem;">
         <div class="preview-badges" style="position: absolute; top: 8px; left: 8px;">
-          <span v-if="isOversized" class="badge-oversized">⛔ &gt; 100MB</span>
-          <span v-else-if="isHeavy" class="badge-heavy">⚠️ Heavy File</span>
+          <span v-if="isOversized" class="badge-oversized">⛔ &gt; 10 MB</span>
+          <span v-else-if="isHeavy" class="badge-heavy">⚠️ File Cukup Besar</span>
         </div>
-        <button type="button" class="remove-chip-btn" style="top: 8px; right: 8px;" @click="removePicked" title="Remove file">&times;</button>
+        <button type="button" class="remove-chip-btn" style="top: 8px; right: 8px;" @click="removePicked" title="Hapus file">&times;</button>
         <video v-if="isVideo" :src="previewUrl" controls style="max-height: 240px; border-radius: 10px; width: 100%; object-fit: contain; background: #000;"></video>
         <img v-else :src="previewUrl" alt="Preview" style="max-height: 240px; border-radius: 10px; width: 100%; object-fit: contain; background: #000;" />
         <p class="file-name-label" style="margin-top: 0.5rem;">
@@ -153,62 +160,60 @@ const emit = defineEmits(['uploaded']);
         </p>
       </div>
 
-      <!-- PRE-UPLOAD WARNING 1: OVERSIZED (>100MB) ALERT -->
+      <!-- PERINGATAN 1: MELEBIHI 10 MB -->
       <div v-if="isOversized" class="upload-alert alert-error">
         <div class="alert-icon">⛔</div>
         <div class="alert-content">
           <div class="alert-title-row">
-            <strong>File Exceeds Server Limit (Max 100MB)</strong>
+            <strong>Ukuran File Melebihi Batas 10 MB</strong>
           </div>
           <p class="alert-desc">
-            "{{ file.name }}" is {{ sizeLabel }}. The server cannot accept files over 100MB and will disconnect.
+            File "{{ file.name }}" berukuran {{ sizeLabel }}. Batas maksimal unggahan adalah 10 MB.
           </p>
           <div class="heavy-tips">
-            <div class="tip-item">❌ Please choose a smaller file or compress your video before uploading.</div>
+            <div class="tip-item">❌ Silakan pilih file yang lebih kecil atau kompres video Anda sebelum mengunggah.</div>
           </div>
         </div>
       </div>
 
-      <!-- PRE-UPLOAD WARNING 2: HEAVY FILE (>20MB) ALERT -->
+      <!-- PERINGATAN 2: UKURAN CUKUP BESAR (5MB - 10MB) -->
       <div v-else-if="isHeavy" class="upload-alert alert-warning">
         <div class="alert-icon">⚠️</div>
         <div class="alert-content">
           <div class="alert-title-row">
-            <strong>Heavy File Warning ({{ sizeLabel }})</strong>
-            <span class="warning-tag">Large File</span>
+            <strong>Pemberitahuan Ukuran File ({{ sizeLabel }})</strong>
           </div>
           <p class="alert-desc">
-            This media is relatively heavy. Over mobile data or slow connections, uploads may stall or disconnect (<em>"Connection lost"</em>).
+            File ini berukuran cukup besar. Unggahan melalui jaringan seluler mungkin memerlukan sedikit waktu.
           </p>
           <div class="heavy-tips">
-            <div class="tip-item">📱 Keep this tab open and your screen active during upload.</div>
-            <div class="tip-item">📶 Wi-Fi connection recommended for fast and stable uploads.</div>
+            <div class="tip-item">📱 Tetap buka halaman ini selama proses unggah berjalan.</div>
           </div>
         </div>
       </div>
 
-      <!-- Optional Name (If guest) -->
+      <!-- Nama Pengirim (Opsional) -->
       <div v-if="!state.user" class="form-group" style="margin-top: 1rem;">
-        <label for="card-uploader-name">Your Name (Optional)</label>
+        <label for="card-uploader-name">Nama Anda (Opsional)</label>
         <input 
           id="card-uploader-name" 
           v-model="uploaderName" 
           type="text" 
-          placeholder="e.g. Maria, Auntie, Colleague (or leave blank for Loved One)" 
+          placeholder="contoh: Maria, Tante, Sahabat (atau kosongkan untuk 'Keluarga & Sahabat')" 
         />
       </div>
 
       <div class="form-group" style="margin-top: 1rem;">
-        <label for="caption">Caption or Story (Optional)</label>
-        <textarea id="caption" v-model="caption" rows="2" placeholder="Tell us about this memory…"></textarea>
+        <label for="caption">Keterangan atau Kenangan (Opsional)</label>
+        <textarea id="caption" v-model="caption" rows="2" placeholder="Ceritakan kenangan tentang foto ini…"></textarea>
       </div>
 
-      <!-- Enhanced Live Progress -->
+      <!-- Live Progress -->
       <div v-if="uploading" class="upload-progress-container">
         <div class="progress-header">
           <span class="progress-status">
             <span class="pulse-dot"></span>
-            Uploading file...
+            Mengunggah file...
           </span>
           <span class="progress-numbers">
             {{ uploadedMBFormatted }} / {{ totalMBFormatted }} ({{ progress }}%)
@@ -218,8 +223,8 @@ const emit = defineEmits(['uploaded']);
           <div class="progress-bar animated-stripes" :style="{ width: progress + '%' }"></div>
         </div>
         <div class="progress-subnote">
-          <span>📡 Streaming data safely to server...</span>
-          <button type="button" class="btn-cancel-upload" @click="cancelUpload">✕ Cancel</button>
+          <span>📡 Mengirim data ke server...</span>
+          <button type="button" class="btn-cancel-upload" @click="cancelUpload">✕ Batalkan</button>
         </div>
       </div>
 
@@ -228,10 +233,9 @@ const emit = defineEmits(['uploaded']);
           class="btn btn-primary" 
           :disabled="!file || uploading || isOversized"
         >
-          <span v-if="uploading">Uploading... ({{ progress }}%)</span>
-          <span v-else-if="isOversized">⛔ File Too Large (&gt;100MB)</span>
-          <span v-else-if="isHeavy">⬆️ Upload (⚠️ Heavy: {{ sizeLabel }})</span>
-          <span v-else>⬆️ Upload Memory</span>
+          <span v-if="uploading">Mengunggah... ({{ progress }}%)</span>
+          <span v-else-if="isOversized">⛔ File Terlalu Besar (&gt;10 MB)</span>
+          <span v-else>⬆️ Unggah Kenangan</span>
         </button>
       </div>
       <div v-if="message" class="alert alert-success" style="margin-top: 1rem;">{{ message }}</div>
