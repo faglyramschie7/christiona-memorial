@@ -17,16 +17,17 @@ function playMusic() {
   musicRef.value.volume = currentItem.value?.mimetype?.startsWith('video') ? 0.25 : 0.6;
   if (isPlaying.value && currentItem.value) musicRef.value.play().catch(() => {});
 }
-watch([isPlaying, currentItem], () => {
-  if (isPlaying.value && currentItem.value) playMusic();
-  else musicRef.value?.pause();
-});
 let timer = null;
 let overlayTimer = null;
 
 const currentItem = computed(() => {
   if (!mediaList.value.length) return null;
   return mediaList.value[currentIndex.value];
+});
+
+watch([isPlaying, currentItem], () => {
+  if (isPlaying.value && currentItem.value) playMusic();
+  else musicRef.value?.pause();
 });
 
 async function loadMedia() {
