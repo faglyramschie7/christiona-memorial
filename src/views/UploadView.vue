@@ -178,10 +178,7 @@ onUnmounted(() => {
     <div class="page-header">
       <router-link to="/" class="back-link">← Kembali ke Feed</router-link>
       <h1 class="page-title">Bagikan Foto &amp; Video Kenangan</h1>
-      <p class="section-desc">
-        Siapa pun dapat mengunggah kenangan foto dan video untuk <strong>Christiona Adolfin Mona</strong> tanpa perlu mendaftar/login.
-        Semua kiriman akan disimpan dengan aman dan langsung ditinjau oleh keluarga/admin sebelum tampil di feed utama dan tayangan slideshow.
-      </p>
+
     </div>
 
     <!-- Multi-Upload Card -->
@@ -196,8 +193,8 @@ onUnmounted(() => {
         @drop.prevent="onDrop"
       >
         <div class="drop-icon">📸 🎥</div>
-        <p class="dropzone-text">Klik atau seret &amp; lepas beberapa foto / video di sini</p>
-        <span class="dropzone-sub">Otomatis dioptimalkan ke WebP (foto) &amp; WebM (video) • Maksimal total 10 MB</span>
+        <p class="dropzone-text">Pilih foto atau video</p>
+        <span class="dropzone-sub">Maksimal total 10 MB</span>
         <input 
           ref="fileInput" 
           type="file" 
@@ -281,18 +278,18 @@ onUnmounted(() => {
           id="uploader-name" 
           v-model="uploaderName" 
           type="text" 
-          placeholder="contoh: Maria, Tante, Rekan Kerja (atau kosongkan untuk 'Keluarga & Sahabat')" 
+          placeholder="Nama Anda" 
         />
       </div>
 
       <!-- Keterangan / Cerita Kenangan -->
       <div class="form-group">
-        <label for="upload-caption">Keterangan atau Cerita Kenangan (Opsional)</label>
+        <label for="upload-caption">Cerita Kenangan (Opsional)</label>
         <textarea 
           id="upload-caption" 
           v-model="caption" 
           rows="3" 
-          placeholder="Tuliskan cerita singkat tentang momen ini, atau pesan kasih untuk Christiona..."
+          placeholder="Tuliskan kenangan Anda..."
           class="composer-textarea"
         ></textarea>
       </div>
@@ -322,7 +319,7 @@ onUnmounted(() => {
       <!-- Tombol Aksi Upload -->
       <div class="composer-actions">
         <span v-if="!selectedFiles.length" style="color: var(--text-muted); font-size: 0.85rem;">
-          Pilih minimal 1 foto atau video (Maksimal total 10 MB)
+          Pilih foto atau video untuk diunggah
         </span>
         <span v-else-if="isTotalOversized" style="color: var(--danger); font-size: 0.85rem;">
           ⛔ Total {{ totalSizeMB }} MB melebihi batas 10 MB
@@ -339,13 +336,11 @@ onUnmounted(() => {
         >
           <span v-if="uploading">{{ progress === 100 ? 'Memproses WebP/WebM...' : `Mengunggah... (${progress}%)` }}</span>
           <span v-else-if="isTotalOversized">⛔ Kurangi File (&lt; 10 MB)</span>
-          <span v-else>⬆️ Unggah Semua Kenangan ({{ totalSizeMB }} MB)</span>
+          <span v-else>Bagikan Kenangan</span>
         </button>
       </div>
 
-      <div class="moderation-notice">
-        🛡️ <em>Semua orang dapat mengunggah kenangan. Seluruh file akan disimpan di server dan langsung ditinjau oleh pihak keluarga/admin sebelum ditampilkan pada feed dan slideshow.</em>
-      </div>
+
     </div>
   </main>
 </template>

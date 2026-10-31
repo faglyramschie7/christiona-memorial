@@ -138,17 +138,6 @@ onMounted(loadFeed);
     <HeroSection />
 
     <main class="feed-container">
-      <!-- Quick Post Action Banner -->
-      <div class="feed-create-bar">
-        <div class="user-prompt" @click="$router.push('/create')">
-          <span class="user-circle">🕊️</span>
-          <span class="prompt-text">Bagikan kenangan, foto, video, atau doa untuk Christiona...</span>
-        </div>
-        <router-link to="/create" class="btn btn-primary btn-sm">
-          <span>➕ Bagikan</span>
-        </router-link>
-      </div>
-
       <!-- Feed Header -->
       <div class="feed-header">
         <h2>Memorial Feed</h2>

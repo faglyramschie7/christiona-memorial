@@ -22,10 +22,6 @@ const portraitSrc = '/images/Cover.webp'; // runtime URL (public/images/Cover.we
         <p class="verse-text">“Akulah kebangkitan dan hidup; barangsiapa percaya kepada-Ku, ia akan hidup walaupun ia sudah mati.”</p>
         <span class="date-badge">Yohanes 11:25</span>
       </div>
-      <div class="hero-actions">
-        <router-link to="/create" class="btn btn-primary">🕊️ Bagikan Kenangan atau Foto</router-link>
-        <router-link to="/slideshow" class="btn btn-secondary">🎬 Tonton Slideshow</router-link>
-      </div>
     </div>
   </header>
 </template>

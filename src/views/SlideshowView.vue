@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { api, formatDate } from '../api';
 import { toast } from '../store';
 import Icon from '../components/Icon.vue';
@@ -11,6 +11,16 @@ const loading = ref(true);
 const isFullscreen = ref(false);
 const showOverlay = ref(true);
 const videoRef = ref(null);
+const musicRef = ref(null);
+function playMusic() {
+  if (!musicRef.value) return;
+  musicRef.value.volume = currentItem.value?.mimetype?.startsWith('video') ? 0.25 : 0.6;
+  if (isPlaying.value && currentItem.value) musicRef.value.play().catch(() => {});
+}
+watch([isPlaying, currentItem], () => {
+  if (isPlaying.value && currentItem.value) playMusic();
+  else musicRef.value?.pause();
+});
 let timer = null;
 let overlayTimer = null;
 
@@ -191,6 +201,9 @@ function handleStageClick() {
 
 onMounted(async () => {
   await loadMedia();
+  playMusic();
+  window.addEventListener('pointerdown', playMusic);
+  window.addEventListener('keydown', playMusic);
   if (mediaList.value.length) {
     startAutoPlay();
   }
@@ -202,6 +215,9 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  musicRef.value?.pause();
+  window.removeEventListener('pointerdown', playMusic);
+  window.removeEventListener('keydown', playMusic);
   stopAutoPlay();
   if (overlayTimer) clearTimeout(overlayTimer);
   window.removeEventListener('keydown', handleKeydown);
@@ -219,6 +235,7 @@ onUnmounted(() => {
     @touchstart="resetOverlayFade"
     @click="resetOverlayFade"
   >
+    <audio ref="musicRef" src="/audio/he-leadeth-me.mp3" loop preload="auto"></audio>
     <!-- Dynamic Ambient Backdrop Glow -->
     <div 
       v-if="currentItem && !currentItem.mimetype.startsWith('video')" 
@@ -271,7 +288,7 @@ onUnmounted(() => {
               :key="currentItem.id || currentItem.filename"
               :src="`/upload/${currentItem.filename}`" 
               controls 
-              autoplay 
+              autoplay
               playsinline
               class="slide-fit-media"
               @ended="onVideoEnded"
