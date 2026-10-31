@@ -27,8 +27,8 @@ const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in pub
         Unseen, unheard, but always near; still loved, still missed, and very dear.”
       </p>
       <div class="hero-actions">
-        <router-link :to="{ path: '/', hash: '#tributes' }" class="btn btn-primary">Leave a Tribute</router-link>
-        <router-link :to="{ path: '/', hash: '#upload' }" class="btn btn-secondary">Share Photos &amp; Videos</router-link>
+        <router-link to="/create" class="btn btn-primary">Share a Tribute or Photo</router-link>
+        <router-link to="/slideshow" class="btn btn-secondary">Watch Slideshow</router-link>
       </div>
     </div>
   </header>
