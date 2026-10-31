@@ -16,7 +16,7 @@
       <polyline points="9 22 9 12 15 12 15 22" />
     </g>
 
-    <!-- Upload / Plus -->
+    <!-- Upload -->
     <g v-else-if="name === 'upload'">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="17 8 12 3 7 8" />
@@ -77,6 +77,12 @@
     <!-- Minimize -->
     <g v-else-if="name === 'minimize'">
       <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+    </g>
+
+    <!-- Arrow Left / Back -->
+    <g v-else-if="name === 'arrow-left'">
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
     </g>
   </svg>
 </template>

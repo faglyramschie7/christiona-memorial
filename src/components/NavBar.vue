@@ -1,11 +1,16 @@
 <script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { state, logout } from '../store';
 import Icon from './Icon.vue';
+
+const route = useRoute();
+const isSlideshow = computed(() => route.path === '/slideshow');
 </script>
 
 <template>
-  <!-- Minimal Top Header -->
-  <header class="top-brand-header">
+  <!-- Minimal Top Header: Hidden on slideshow for true full screen -->
+  <header v-if="!isSlideshow" class="top-brand-header">
     <router-link to="/" class="brand-link">
       <Icon name="dove" :size="20" class="brand-icon" />
       <span class="brand-name">Christiona Adolfin Mona</span>
@@ -22,8 +27,8 @@ import Icon from './Icon.vue';
     </div>
   </header>
 
-  <!-- Clean 3-Item Bottom Navigation: Feed, Upload, Slideshow -->
-  <nav class="bottom-nav-bar">
+  <!-- Clean 3-Item Bottom Navigation: Hidden on slideshow -->
+  <nav v-if="!isSlideshow" class="bottom-nav-bar">
     <div class="bottom-nav-inner three-tabs">
       <router-link to="/" class="nav-tab" exact-active-class="active">
         <Icon name="home" :size="22" />

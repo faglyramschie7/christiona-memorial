@@ -195,11 +195,16 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- Top Overlay: Minimal Memorial Header -->
+      <!-- Top Overlay: Minimal Memorial Header with Back button -->
       <header class="stage-top-overlay">
-        <div class="subject-tag">
-          <span class="sub-label">In Loving Memory</span>
-          <h2 class="sub-name">Christiona Adolfin Mona</h2>
+        <div class="subject-tag" style="display:flex; align-items:center; gap: 0.85rem;">
+          <router-link to="/" class="fs-btn-icon" title="Exit to Feed">
+            <Icon name="arrow-left" :size="20" />
+          </router-link>
+          <div>
+            <span class="sub-label">In Loving Memory</span>
+            <h2 class="sub-name">Christiona Adolfin Mona</h2>
+          </div>
         </div>
 
         <div class="top-controls">

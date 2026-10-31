@@ -401,7 +401,7 @@ code {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 3rem 2.25rem 5.5rem; /* Room above bottom bar */
+  padding: 3rem 2.25rem 2.25rem; /* Clean edge-to-edge padding */
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.65) 55%, transparent 100%);
   display: flex;
   justify-content: space-between;
