@@ -169,68 +169,44 @@ code {
 }
 
 /* ============================================================
-   SLIDESHOW VIEW STYLES
+   TRUE FULLSCREEN SLIDESHOW EXPERIENCE
    ============================================================ */
-.slideshow-page {
-  max-width: 840px;
-  margin: 1.5rem auto 3rem;
-  padding: 0 1rem;
-}
-
-.slideshow-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 1.25rem;
-  padding: 0 0.25rem;
-}
-
-.gold-sub {
-  color: var(--gold);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  display: block;
-}
-
-.slideshow-name {
-  font-size: 1.6rem;
-  color: #fff;
-  margin-top: 0.2rem;
-}
-
-.slideshow-counter {
-  font-size: 0.85rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  color: var(--gold);
-  font-weight: 600;
-}
-
-.slideshow-container {
+.fullscreen-slideshow {
+  position: fixed;
+  inset: 0;
   background: #000;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  z-index: 500;
   overflow: hidden;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-}
-
-.slide-stage {
-  position: relative;
-  height: 60vh;
-  min-height: 360px;
-  max-height: 620px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #07080b;
-  cursor: pointer;
-  overflow: hidden;
 }
 
-.slide-element {
+/* Blurred Ambient background glow effect */
+.ambient-backdrop {
+  position: absolute;
+  inset: -30px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.28);
+  opacity: 0.85;
+  transform: scale(1.1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fullscreen-stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.media-wrapper {
   width: 100%;
   height: 100%;
   display: flex;
@@ -238,97 +214,240 @@ code {
   justify-content: center;
 }
 
-.slide-media {
-  max-width: 100%;
-  max-height: 100%;
+.fullscreen-media {
+  max-width: 100vw;
+  max-height: 100vh;
   object-fit: contain;
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.9);
 }
 
-.slide-arrow {
+/* Floating Top Bar Overlay */
+.fs-top-bar {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1.25rem 2rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fs-badge {
+  font-size: 0.72rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  display: block;
+}
+
+.fs-subject-name {
+  font-family: var(--serif);
+  font-size: 1.35rem;
   color: #fff;
-  width: 44px;
-  height: 44px;
+  letter-spacing: 0.03em;
+}
+
+.fs-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fs-counter {
+  font-size: 0.88rem;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.fs-btn-icon {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  z-index: 10;
 }
 
-.slide-arrow:hover {
+.fs-btn-icon:hover {
+  background: var(--gold);
+  color: #0b0d12;
+}
+
+/* Floating Bottom Caption Bar Overlay */
+.fs-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2.5rem 2rem 5.5rem; /* Room above bottom nav */
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  z-index: 10;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fs-caption-box {
+  max-width: 680px;
+}
+
+.fs-caption-text {
+  font-size: 1.15rem;
+  color: #fff;
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 0.4rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.fs-meta-row {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fs-playback-controls {
+  flex-shrink: 0;
+}
+
+.fs-play-btn {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 0.5rem 1.1rem;
+  border-radius: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fs-play-btn:hover {
   background: var(--gold);
   color: #0b0d12;
   border-color: var(--gold);
 }
 
-.prev-arrow { left: 16px; }
-.next-arrow { right: 16px; }
-
-.slide-caption-bar {
-  background: var(--bg-card);
-  padding: 1rem 1.25rem;
+/* Lateral Floating Nav Arrows */
+.fs-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.slide-text {
-  font-size: 1rem;
-  color: #f1f5f9;
-  font-style: italic;
-  margin-bottom: 0.25rem;
-}
-
-.slide-meta {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  display: flex;
-  gap: 0.5rem;
-}
-
-.control-btn {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.4rem 0.85rem;
-  border-radius: 8px;
+  justify-content: center;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
+  z-index: 15;
+  backdrop-filter: blur(8px);
 }
 
-.control-btn:hover {
+.fs-arrow:hover {
+  background: var(--gold);
+  color: #0b0d12;
+  transform: translateY(-50%) scale(1.1);
   border-color: var(--gold);
-  color: var(--gold);
 }
 
-/* Slide Transition Animations */
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
+.fs-prev { left: 24px; }
+.fs-next { right: 24px; }
 
-.slide-fade-enter-from {
+/* Auto-hide overlays on inactivity */
+.controls-hidden .fs-top-bar {
   opacity: 0;
-  transform: scale(0.98);
+  transform: translateY(-20px);
+  pointer-events: none;
 }
 
-.slide-fade-leave-to {
+.controls-hidden .fs-bottom-bar {
   opacity: 0;
-  transform: scale(1.02);
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
+.controls-hidden .fs-arrow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Smooth Crossfade transitions between pictures */
+.ambient-fade-enter-active,
+.ambient-fade-leave-active {
+  transition: opacity 0.6s ease;
+}
+
+.ambient-fade-enter-from,
+.ambient-fade-leave-to {
+  opacity: 0;
+}
+
+.fullscreen-center-msg {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: #fff;
+}
+
+.empty-box {
+  background: rgba(20, 24, 33, 0.85);
+  border: 1px solid var(--border);
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+}
+
+@media (max-width: 768px) {
+  .fs-top-bar {
+    padding: 1rem 1.25rem;
+  }
+  .fs-subject-name {
+    font-size: 1.1rem;
+  }
+  .fs-bottom-bar {
+    padding: 1.5rem 1.25rem 5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .fs-caption-text {
+    font-size: 0.95rem;
+  }
+  .fs-arrow {
+    width: 42px;
+    height: 42px;
+  }
+  .fs-prev { left: 12px; }
+  .fs-next { right: 12px; }
 }
 
 /* ============================================================
