@@ -510,10 +510,17 @@ app.use((req, res, next) => {
 // JSON error handler (multer limits, bad file types, etc.)
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Ukuran file melebihi batas maksimal (10 MB).' : err.message;
+    const limit = req.path === '/api/admin/library' ? 200 : req.path === '/api/admin/slideshow/music' ? 30 : 10;
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? `Ukuran file melebihi batas maksimal (${limit} MB).` : err.message;
     return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: msg });
   }
   console.error(err);
+  const storageMessages = {
+    EACCES: 'Server tidak memiliki izin menulis ke folder upload.',
+    ENOSPC: 'Penyimpanan server penuh.',
+    ENOENT: 'Folder penyimpanan unggahan tidak tersedia di server.'
+  };
+  if (storageMessages[err.code]) return res.status(500).json({ error: storageMessages[err.code] });
   res.status(err.status || 400).json({ error: err.message || 'Terjadi kesalahan sistem' });
 });
 

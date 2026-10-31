@@ -2342,3 +2342,9 @@ body:has(.admin-layout) { padding-bottom: 0; }
 .footer.admin-footer { padding: .75rem 1.25rem; font-size: .78rem; }
 .footer.admin-footer p { margin: 0; }
 .footer.admin-footer .footer-sub { margin-top: .2rem; }
+
+/* Slide changes must not reveal navigation; only mouse movement does. */
+.cinematic-slideshow-view.arrows-hidden .stage-arrow {
+  opacity: 0;
+  pointer-events: none;
+}

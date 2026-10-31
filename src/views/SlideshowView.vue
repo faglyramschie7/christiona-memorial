@@ -270,7 +270,7 @@ onUnmounted(() => {
 <template>
   <div 
     class="cinematic-slideshow-view" 
-    :class="{ 'ui-hidden': !showOverlay, 'memorial-header-hidden': isFullscreen && !showMemorialHeader }"
+    :class="{ 'ui-hidden': !showOverlay, 'arrows-hidden': !showMemorialHeader, 'memorial-header-hidden': isFullscreen && !showMemorialHeader }"
     @mousemove="onMouseMove" 
     @touchstart="resetOverlayFade"
     @click="resetOverlayFade"

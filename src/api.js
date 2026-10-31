@@ -32,7 +32,14 @@ function uploadWithProgress(url, body) {
     xhr.onload = () => {
       report(100, false);
       let data;
-      try { data = JSON.parse(xhr.responseText); } catch { reject(new Error('Respons server tidak valid.')); return; }
+      try { data = JSON.parse(xhr.responseText); } catch {
+        const messages = {
+          413: 'Unggahan ditolak server karena terlalu besar. Batas proxy server perlu disesuaikan.',
+          502: 'Server unggahan tidak tersedia. Silakan coba lagi.',
+          504: 'Waktu unggahan habis di server. Silakan coba lagi.'
+        };
+        reject(new Error(messages[xhr.status] || `Server mengembalikan respons yang tidak dapat dibaca (HTTP ${xhr.status}).`)); return;
+      }
       if (xhr.status >= 200 && xhr.status < 300) resolve(data);
       else reject(new Error(data.error || `Upload gagal (HTTP ${xhr.status})`));
     };
