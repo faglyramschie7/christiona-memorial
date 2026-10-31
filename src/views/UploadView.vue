@@ -197,7 +197,7 @@ onUnmounted(() => {
       >
         <div class="drop-icon">📸 🎥</div>
         <p class="dropzone-text">Klik atau seret &amp; lepas beberapa foto / video di sini</p>
-        <span class="dropzone-sub">Terbuka untuk semua • JPG, PNG, WEBP, MP4 (Maksimal total seluruh file: 10 MB)</span>
+        <span class="dropzone-sub">Otomatis dioptimalkan ke WebP (foto) &amp; WebM (video) • Maksimal total 10 MB</span>
         <input 
           ref="fileInput" 
           type="file" 
@@ -302,7 +302,7 @@ onUnmounted(() => {
         <div class="progress-header">
           <span class="progress-status">
             <span class="pulse-dot"></span>
-            Mengirim {{ selectedFiles.length }} file ke server...
+            {{ progress === 100 ? 'Memproses format WebP / WebM di server...' : `Mengirim ${selectedFiles.length} file ke server...` }}
           </span>
           <span class="progress-numbers">
             {{ uploadedMBFormatted }} / {{ totalUploadMBFormatted }} ({{ progress }}%)
@@ -314,7 +314,7 @@ onUnmounted(() => {
         </div>
 
         <div class="progress-subnote">
-          <span>📡 Mengunggah kenangan ke server. Mohon tetap buka halaman ini...</span>
+          <span>{{ progress === 100 ? '⚙️ Mengonversi foto ke WebP dan video ke WebM...' : '📡 Mengunggah kenangan ke server. Mohon tetap buka halaman ini...' }}</span>
           <button type="button" class="btn-cancel-upload" @click="cancelUpload">✕ Batalkan Unggahan</button>
         </div>
       </div>
@@ -337,7 +337,7 @@ onUnmounted(() => {
           :disabled="uploading || !selectedFiles.length || isTotalOversized"
           @click="handleMultiUpload"
         >
-          <span v-if="uploading">Mengunggah... ({{ progress }}%)</span>
+          <span v-if="uploading">{{ progress === 100 ? 'Memproses WebP/WebM...' : `Mengunggah... (${progress}%)` }}</span>
           <span v-else-if="isTotalOversized">⛔ Kurangi File (&lt; 10 MB)</span>
           <span v-else>⬆️ Unggah Semua Kenangan ({{ totalSizeMB }} MB)</span>
         </button>

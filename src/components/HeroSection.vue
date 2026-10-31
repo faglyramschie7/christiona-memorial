@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 const portraitOk = ref(true);
-const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in public/images)
+const portraitSrc = '/images/Cover.webp'; // runtime URL (public/images/Cover.webp)
 </script>
 
 <template>
@@ -22,10 +22,6 @@ const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in pub
         <p class="verse-text">“Akulah kebangkitan dan hidup; barangsiapa percaya kepada-Ku, ia akan hidup walaupun ia sudah mati.”</p>
         <span class="date-badge">Yohanes 11:25</span>
       </div>
-      <p class="hero-quote">
-        “Those we love don't go away, they walk beside us every day.<br />
-        Unseen, unheard, but always near; still loved, still missed, and very dear.”
-      </p>
       <div class="hero-actions">
         <router-link to="/create" class="btn btn-primary">🕊️ Bagikan Kenangan atau Foto</router-link>
         <router-link to="/slideshow" class="btn btn-secondary">🎬 Tonton Slideshow</router-link>

@@ -143,7 +143,7 @@ const emit = defineEmits(['uploaded']);
       >
         <div style="font-size: 2rem">⬆️</div>
         <p class="dropzone-text">{{ file ? 'Pilih file lain' : 'Klik atau seret & lepas foto / video di sini' }}</p>
-        <span class="dropzone-sub">Terbuka untuk semua • JPG, PNG, WEBP, MP4 — Maksimal 10 MB</span>
+        <span class="dropzone-sub">Otomatis dioptimalkan ke WebP (foto) &amp; WebM (video) • Maksimal 10 MB</span>
         <input ref="input" type="file" accept="image/*,video/*" hidden @change="pick($event.target.files[0])" />
       </div>
 
@@ -213,7 +213,7 @@ const emit = defineEmits(['uploaded']);
         <div class="progress-header">
           <span class="progress-status">
             <span class="pulse-dot"></span>
-            Mengunggah file...
+            {{ progress === 100 ? 'Memproses format WebP / WebM di server...' : 'Mengunggah file...' }}
           </span>
           <span class="progress-numbers">
             {{ uploadedMBFormatted }} / {{ totalMBFormatted }} ({{ progress }}%)
@@ -223,7 +223,7 @@ const emit = defineEmits(['uploaded']);
           <div class="progress-bar animated-stripes" :style="{ width: progress + '%' }"></div>
         </div>
         <div class="progress-subnote">
-          <span>📡 Mengirim data ke server...</span>
+          <span>{{ progress === 100 ? '⚙️ Menyimpan dalam format WebP / WebM...' : '📡 Mengirim data ke server...' }}</span>
           <button type="button" class="btn-cancel-upload" @click="cancelUpload">✕ Batalkan</button>
         </div>
       </div>
@@ -233,7 +233,7 @@ const emit = defineEmits(['uploaded']);
           class="btn btn-primary" 
           :disabled="!file || uploading || isOversized"
         >
-          <span v-if="uploading">Mengunggah... ({{ progress }}%)</span>
+          <span v-if="uploading">{{ progress === 100 ? 'Memproses WebP/WebM...' : `Mengunggah... (${progress}%)` }}</span>
           <span v-else-if="isOversized">⛔ File Terlalu Besar (&gt;10 MB)</span>
           <span v-else>⬆️ Unggah Kenangan</span>
         </button>

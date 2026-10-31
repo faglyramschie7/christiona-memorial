@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('./db');
+const { convertUploadedFile } = require('./mediaConverter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -202,6 +203,11 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     const displayName = uploaderName || (currentUser ? currentUser.name : 'Keluarga & Kerabat');
     const userId = currentUser ? currentUser.id : 'guest';
     const postId = crypto.randomUUID();
+
+    // Automatically transcode / optimize: images to WebP and videos to WebM
+    for (const file of files) {
+      await convertUploadedFile(file, UPLOAD_DIR);
+    }
 
     for (const file of files) {
       const id = crypto.randomUUID();
