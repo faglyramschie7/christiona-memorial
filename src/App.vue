@@ -14,7 +14,7 @@ onMounted(loadSession);
   <router-view />
   <footer class="footer">
     <p>In loving memory of <strong>Christiona Adolfin Mona</strong></p>
-    <p class="footer-sub">Passed away October 28 • 5:48 — Rest in peace 🕊️</p>
+    <p class="footer-sub">“Aku telah mengakhiri pertandingan yang baik, aku telah mencapai garis akhir.” — 2 Timotius 4:7 🕊️</p>
   </footer>
   <AuthModal />
   <Lightbox />

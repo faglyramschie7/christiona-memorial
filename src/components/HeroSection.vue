@@ -18,9 +18,9 @@ const portraitSrc = '/images/portrait.jpg'; // runtime URL (optional file in pub
       </div>
       <p class="hero-subtitle">Forever in our hearts</p>
       <h1 class="hero-title">Christiona Adolfin Mona</h1>
-      <div class="hero-dates">
-        <span>Passed away</span>
-        <div class="date-badge">October 28 • 5:48</div>
+      <div class="hero-verse">
+        <p class="verse-text">“Akulah kebangkitan dan hidup; barangsiapa percaya kepada-Ku, ia akan hidup walaupun ia sudah mati.”</p>
+        <span class="date-badge">Yohanes 11:25</span>
       </div>
       <p class="hero-quote">
         “Those we love don't go away, they walk beside us every day.<br />

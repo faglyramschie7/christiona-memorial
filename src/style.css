@@ -614,6 +614,23 @@ code {
   margin-bottom: 1rem;
 }
 
+.hero-verse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 520px;
+  margin: 0 auto 1rem;
+}
+
+.verse-text {
+  font-family: var(--serif);
+  font-style: italic;
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
 .date-badge {
   background: var(--gold-glow);
   color: var(--gold);
