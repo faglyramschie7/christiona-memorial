@@ -8,7 +8,7 @@ import Icon from '../components/Icon.vue';
 const router = useRouter();
 
 const selectedFiles = ref([]);
-const uploaderName = ref(state.user ? state.user.name : '');
+const uploaderName = ref('');
 const caption = ref('');
 const progress = ref(0);
 const uploadedBytes = ref(0);
@@ -277,7 +277,7 @@ onUnmounted(() => {
         <label for="uploader-name">Nama Anda (Opsional)</label>
         <input 
           id="uploader-name" 
-          v-model="uploaderName" 
+          v-model="uploaderName" autocomplete="off" 
           type="text" 
           placeholder="Nama Anda" 
         />

@@ -1,4 +1,6 @@
 <script setup>
+import MediaRotation from '../components/MediaRotation.vue';
+import AdminMediaEditor from '../components/AdminMediaEditor.vue';
 import { ref, computed, watch } from 'vue';
 import PendingUploadCards from '../components/PendingUploadCards.vue';
 import MediaDropzone from '../components/MediaDropzone.vue';
@@ -34,7 +36,7 @@ async function remove(item) {
   finally { busy.value = false; }
 }
 function preview(item) {
-  state.lightbox = { src: `/upload/${item.filename}`, video: item.mimetype.startsWith('video'), caption: item.title };
+  state.lightbox = { items: [item], currentIndex: 0, adminKind: 'library', onMediaSaved: () => load(true) };
 }
 </script>
 <template>
@@ -61,12 +63,16 @@ function preview(item) {
       <div class="library-grid">
         <PendingUploadCards kind="library" @changed="load(true)" />
         <article v-for="item in items" :key="item.id" class="card library-item">
+          <div style="position: relative;">
           <button class="library-preview" @click="preview(item)" :aria-label="`Lihat ${item.title}`">
             <video v-if="item.mimetype.startsWith('video')" :src="`/upload/${item.filename}#t=0.1`" muted preload="metadata" playsinline></video>
             <img v-else :src="`/upload/${item.filename}`" :alt="item.title" loading="lazy" />
             <span v-if="item.mimetype.startsWith('video')" class="preview-label">▶ Lihat Video</span>
           </button>
+          <MediaRotation :item="item" kind="library" @saved="load(true)" />
+          </div>
           <strong>{{ item.title }}</strong>
+          <AdminMediaEditor :item="item" kind="library" @saved="load(true)" />
           <small class="section-desc">Ukuran akhir: {{ formatFileSize(item.size) }} · {{ item.mimetype.startsWith('video') ? 'WebM' : 'WebP' }}</small>
           <button class="btn btn-outline" :disabled="busy" @click="remove(item)">Hapus</button>
         </article>
@@ -80,7 +86,7 @@ function preview(item) {
 input { min-height: 52px; padding: 12px 16px; font-size: 1rem; color: white; background: #0b0e14; border: 1px solid #414755; border-radius: 10px; width: 100%; box-sizing: border-box; }
 .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 .library-item { padding: 1rem; display: grid; gap: 1rem; align-content: start; }
-.library-preview { position: relative; border: 0; padding: 0; background: #000; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.library-preview { width: 100%; position: relative; border: 0; padding: 0; background: #000; border-radius: 8px; overflow: hidden; cursor: pointer; }
 .library-preview video, .library-preview img { width: 100%; height: 180px; object-fit: contain; display: block; pointer-events: none; }
 .preview-label { position: absolute; bottom: 10px; left: 10px; color: white; padding: 6px 10px; background: #000b; border-radius: 6px; }
 </style>

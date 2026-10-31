@@ -358,6 +358,41 @@ app.put('/api/admin/slideshow/settings', requireAdmin, async (req, res) => {
   } catch { res.status(500).json({ error: 'Gagal menyimpan pengaturan slideshow' }); }
 });
 
+app.patch('/api/admin/media/:kind/:id', requireAdmin, async (req, res) => {
+  const { kind, id } = req.params;
+  if (!['feed', 'library'].includes(kind) || typeof req.body.caption !== 'string' || req.body.caption.length > 10000) return res.status(400).json({ error: 'Teks tidak valid.' });
+  try {
+    if (kind === 'library') {
+      const title = req.body.caption.trim();
+      if (!title || title.length > 200) return res.status(400).json({ error: 'Judul wajib diisi, maksimal 200 karakter.' });
+      await db.run('UPDATE library SET title = ? WHERE id = ?', [title, id]);
+    } else {
+      if (typeof req.body.user_name !== 'string' || req.body.user_name.trim().length > 150) return res.status(400).json({ error: 'Nama pengirim maksimal 150 karakter.' });
+      await db.run('UPDATE uploads SET caption = ?, user_name = ? WHERE post_id = ? OR id = ?', [req.body.caption, req.body.user_name.trim(), id, id]);
+    }
+    res.json({ success: true });
+  } catch { res.status(500).json({ error: 'Gagal menyimpan teks.' }); }
+});
+const rotatingMedia = new Set();
+app.post('/api/admin/media/:kind/:id/rotate', requireAdmin, async (req, res) => {
+  const { kind, id } = req.params;
+  if (!['feed', 'library'].includes(kind) || ![90, -90].includes(req.body.degrees)) return res.status(400).json({ error: 'Rotasi tidak valid.' });
+  const key = kind + id;
+  if (rotatingMedia.has(key)) return res.status(409).json({ error: 'Media sedang diputar.' });
+  rotatingMedia.add(key);
+  try {
+    const table = kind === 'feed' ? 'uploads' : 'library';
+    const item = await db.get(`SELECT * FROM ${table} WHERE id = ?`, [id]);
+    if (!item) return res.status(404).json({ error: 'Media tidak ditemukan.' });
+    const result = await require('./mediaConverter').rotateUploadedFile(item, UPLOAD_DIR, req.body.degrees);
+    if (kind === 'feed') await db.run('UPDATE uploads SET filename = ?, mimetype = ?, size = ? WHERE id = ?', [result.filename, result.mimetype, result.size, id]);
+    else await db.run('UPDATE library SET filename = ?, mimetype = ? WHERE id = ?', [result.filename, result.mimetype, id]);
+    fs.unlink(path.join(UPLOAD_DIR, item.filename), () => {});
+    res.json({ success: true, media: { ...item, ...result } });
+  } catch (e) { res.status(500).json({ error: e.message || 'Gagal memutar media.' }); }
+  finally { rotatingMedia.delete(key); }
+});
+
 app.get('/api/admin/posts', requireAdmin, async (req, res) => {
   try {
     const allUploads = await db.all("SELECT * FROM uploads ORDER BY created_at DESC");

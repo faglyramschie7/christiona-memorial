@@ -49,3 +49,37 @@ function convertUploadedFile(file, directory) {
   return task;
 }
 module.exports = { convertUploadedFile };
+
+function rotateUploadedFile(file, directory, degrees) {
+  const task = queue.then(async () => {
+    const image = file.mimetype.startsWith('image/');
+    const filename = `${require('crypto').randomUUID()}.${image ? 'webp' : 'webm'}`;
+    const output = path.join(directory, filename);
+    const args = ['-y', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1', '-threads', '1', '-i', path.join(directory, file.filename), '-vf', degrees === 90 ? 'transpose=1' : 'transpose=2'];
+    if (image) args.push('-frames:v', '1', '-c:v', 'libwebp', '-quality', '80');
+    else args.push('-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-threads', '1', '-b:v', '1200k', '-c:a', 'libopus', '-b:a', '96k');
+    try {
+      const options = { timeout: 20 * 60 * 1000, maxBuffer: 2 * 1024 * 1024 };
+      if (image) {
+        const intermediate = output + '.png';
+        try {
+          const imageArgs = args.slice(0, args.indexOf('-frames:v'));
+          await run('ffmpeg', [...imageArgs, '-frames:v', '1', intermediate], options);
+          try { await run('cwebp', ['-quiet', '-q', '80', intermediate, '-o', output], options); }
+          catch { await run('ffmpeg', [...args, output], options); }
+        } finally { try { fs.unlinkSync(intermediate); } catch {} }
+      } else await run('ffmpeg', [...args, output], options);
+      return { filename, mimetype: image ? 'image/webp' : 'video/webm', size: fs.statSync(output).size };
+    } catch (error) {
+      try { fs.unlinkSync(output); } catch {}
+      console.error('[mediaRotation]', { file: file.filename, code: error.code, signal: error.signal, stderr: error.stderr, message: error.message });
+      if (error.code === 'ENOENT') throw new Error('FFmpeg tidak ditemukan oleh aplikasi. Instal FFmpeg lalu restart aplikasi.');
+      if (!fs.existsSync(path.join(directory, file.filename))) throw new Error('File asli tidak ditemukan di server.');
+      if (error.killed) throw new Error('Rotasi melewati batas waktu. Silakan coba lagi.');
+      throw new Error('Rotasi gagal. Lihat detail [mediaRotation] di log server.');
+    }
+  });
+  queue = task.catch(() => {});
+  return task;
+}
+module.exports.rotateUploadedFile = rotateUploadedFile;

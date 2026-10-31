@@ -1,4 +1,6 @@
 <script setup>
+import MediaRotation from '../components/MediaRotation.vue';
+import AdminMediaEditor from '../components/AdminMediaEditor.vue';
 import { ref, computed, watch } from 'vue';
 import { api, formatDate, formatFileSize } from '../api';
 import { state, toast } from '../store';
@@ -60,10 +62,7 @@ const removePost = (p) => {
 };
 
 const open = (mediaItem) => {
-  state.lightbox = {
-    src: `/upload/${mediaItem.filename}`,
-    video: mediaItem.mimetype?.startsWith('video')
-  };
+  state.lightbox = { items: [mediaItem], currentIndex: 0, adminKind: 'feed', onMediaSaved: load };
 };
 
 watch(
@@ -135,7 +134,7 @@ const tabs = [
             <div 
               v-if="!post.media || post.media.length <= 1" 
               class="admin-card-media" 
-              style="cursor: zoom-in" 
+              style="cursor: zoom-in; position: relative;" 
               @click="open(post.media?.[0] || post)"
             >
               <video 
@@ -150,6 +149,7 @@ const tabs = [
                 :alt="post.media[0].original_name" 
                 loading="lazy" 
               />
+              <MediaRotation :item="post.media?.[0] || post" @saved="load" />
             </div>
 
             <!-- Multi-media grid layout -->
@@ -157,7 +157,7 @@ const tabs = [
               <div 
                 v-for="m in post.media" 
                 :key="m.id" 
-                class="admin-sub-media" 
+                class="admin-sub-media" style="position: relative;" 
                 @click="open(m)"
                 title="Klik untuk memperbesar"
               >
@@ -168,6 +168,7 @@ const tabs = [
                   muted
                 ></video>
                 <img v-else :src="`/upload/${m.filename}`" :alt="m.original_name" loading="lazy" />
+                <MediaRotation :item="m" @saved="load" />
               </div>
             </div>
           </div>
@@ -194,6 +195,7 @@ const tabs = [
               ID Post: <code>{{ post.post_id?.slice(0, 8) }}...</code> ({{ post.media?.length || 1 }} file)
             </div>
 
+            <AdminMediaEditor :item="post" @saved="load" />
             <!-- Actions Per Post -->
             <div class="admin-card-actions">
               <button 

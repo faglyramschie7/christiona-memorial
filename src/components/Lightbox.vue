@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue';
+import MediaRotation from './MediaRotation.vue';
 import { state } from '../store';
 
 const currentItem = computed(() => {
@@ -15,6 +16,12 @@ const currentItem = computed(() => {
     caption: state.lightbox.caption || ''
   };
 });
+
+function onRotated(media) {
+  if (!state.lightbox || !media) return;
+  state.lightbox.items[state.lightbox.currentIndex || 0] = media;
+  state.lightbox.onMediaSaved?.();
+}
 
 const currentSrc = computed(() => {
   if (!currentItem.value) return '';
@@ -140,6 +147,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
         :alt="currentItem?.caption || 'Memorial Photo'" 
         draggable="false" 
       />
+      <MediaRotation v-if="state.user?.role === 'admin' && state.lightbox?.adminKind && currentItem?.id" :key="currentItem.id" :item="currentItem" :kind="state.lightbox.adminKind" @saved="onRotated" />
       <div v-if="currentItem?.caption || currentItem?.user_name" class="lightbox-caption-bar">
         <p v-if="currentItem.caption" class="lightbox-caption-text">“{{ currentItem.caption }}”</p>
         <span v-if="currentItem.user_name" class="lightbox-caption-author">Oleh: {{ currentItem.user_name }}</span>

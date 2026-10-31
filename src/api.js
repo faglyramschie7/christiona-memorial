@@ -61,6 +61,8 @@ export const api = {
 
   uploadJobs: () => request('/api/admin/upload-jobs'),
   retryUploadJob: (id) => request(`/api/admin/upload-jobs/${id}/retry`, { method: 'POST' }),
+  editMedia: (kind, id, body) => request(`/api/admin/media/${kind}/${id}`, json('PATCH', body)),
+  rotateMedia: (kind, id, degrees) => request(`/api/admin/media/${kind}/${id}/rotate`, json('POST', { degrees })),
   library: () => request('/api/slideshow/library'),
   uploadLibrary: (body) => uploadWithProgress('/api/admin/library', body),
   removeLibrary: (id) => request(`/api/admin/library/${id}`, { method: 'DELETE' }),

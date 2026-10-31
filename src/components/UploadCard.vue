@@ -7,7 +7,7 @@ import { state, toast } from '../store';
 const router = useRouter();
 
 const file = ref(null);
-const uploaderName = ref(state.user ? state.user.name : '');
+const uploaderName = ref('');
 const caption = ref('');
 const previewUrl = ref('');
 const progress = ref(0);
@@ -198,7 +198,7 @@ const emit = defineEmits(['uploaded']);
         <label for="card-uploader-name">Nama Anda (Opsional)</label>
         <input 
           id="card-uploader-name" 
-          v-model="uploaderName" 
+          v-model="uploaderName" autocomplete="off" 
           type="text" 
           placeholder="contoh: Maria, Tante, Sahabat (atau kosongkan untuk 'Keluarga & Sahabat')" 
         />
