@@ -54,9 +54,10 @@ function togglePlay() {
 
 function startAutoPlay() {
   stopAutoPlay();
+  // 6 seconds per slide for a relaxed cinematic memorial pace
   timer = setInterval(() => {
     nextSlide();
-  }, 5000);
+  }, 6000);
 }
 
 function stopAutoPlay() {
@@ -84,7 +85,7 @@ function resetOverlayFade() {
     if (isPlaying.value) {
       showOverlay.value = false;
     }
-  }, 4000);
+  }, 3500);
 }
 
 function handleKeydown(e) {
@@ -118,91 +119,94 @@ onUnmounted(() => {
 
 <template>
   <div 
-    class="fullscreen-slideshow" 
-    :class="{ 'controls-hidden': !showOverlay }"
+    class="cinematic-slideshow-view" 
+    :class="{ 'ui-hidden': !showOverlay }"
     @mousemove="resetOverlayFade" 
     @touchstart="resetOverlayFade"
+    @click="resetOverlayFade"
   >
-    <!-- Background Ambient Glow based on current photo -->
+    <!-- Dynamic Ambient Backdrop Glow -->
     <div 
       v-if="currentItem && !currentItem.mimetype.startsWith('video')" 
-      class="ambient-backdrop" 
+      class="ambient-kenburns-backdrop" 
       :style="{ backgroundImage: `url(/upload/${currentItem.filename})` }"
     ></div>
 
-    <!-- Empty or Loading States -->
-    <div v-if="loading" class="fullscreen-center-msg">
+    <!-- Loading State -->
+    <div v-if="loading" class="center-banner">
       <div class="candle-container">
         <div class="candle-flame"></div>
         <div class="candle-stick"></div>
       </div>
-      <p style="margin-top: 1rem; color: var(--gold); letter-spacing: 0.1em;">
-        Loading memories for Christiona...
-      </p>
+      <p class="loading-sub">Remembering Christiona Adolfin Mona...</p>
     </div>
 
-    <div v-else-if="!mediaList.length" class="fullscreen-center-msg empty-box">
-      <p style="font-size: 2.8rem; margin-bottom: 0.5rem;">🕊️</p>
+    <!-- Empty State -->
+    <div v-else-if="!mediaList.length" class="center-banner empty-memorial-card">
+      <p style="font-size: 3rem; margin-bottom: 0.5rem;">🕊️</p>
       <h2>No Photos in Slideshow Yet</h2>
-      <p style="color: var(--text-muted); max-width: 420px; margin: 0.75rem auto 1.5rem;">
-        Photos and videos approved by admin will play here in full-screen memorial tribute.
+      <p class="section-desc" style="margin: 0.75rem 0 1.5rem;">
+        Upload photos and videos for Christiona. Approved media will play here automatically in full screen.
       </p>
       <router-link to="/create" class="btn btn-primary">
-        Upload a Photo or Video
+        Upload First Photo
       </router-link>
     </div>
 
-    <!-- Active Media Stage -->
+    <!-- Active Cinematic Stage -->
     <template v-else>
-      <div class="fullscreen-stage" @click="togglePlay">
-        <transition name="ambient-fade" mode="out-in">
-          <div :key="currentItem.id" class="media-wrapper">
+      <div class="stage-viewport" @click="togglePlay">
+        <transition name="cinematic-crossfade" mode="out-in">
+          <div :key="currentItem.id" class="slide-layer">
+            <!-- Video -->
             <video 
               v-if="currentItem.mimetype.startsWith('video')" 
               :src="`/upload/${currentItem.filename}`" 
               controls 
               autoplay 
               playsinline
-              class="fullscreen-media"
+              class="slide-fit-media"
             ></video>
+
+            <!-- Photo with Ken Burns slow subtle zoom effect -->
             <img 
               v-else 
               :src="`/upload/${currentItem.filename}`" 
               :alt="currentItem.caption || 'Memorial Photo'" 
-              class="fullscreen-media" 
+              class="slide-fit-media ken-burns-fx" 
             />
           </div>
         </transition>
 
-        <!-- Lateral Chevron Controls -->
+        <!-- Previous / Next Controls -->
         <button 
-          class="fs-arrow fs-prev" 
+          class="stage-arrow arrow-left" 
           @click.stop="prevSlide" 
-          title="Previous (Left Arrow)"
+          title="Previous"
         >
-          <Icon name="chevron-left" :size="32" />
+          <Icon name="chevron-left" :size="34" />
         </button>
         <button 
-          class="fs-arrow fs-next" 
+          class="stage-arrow arrow-right" 
           @click.stop="nextSlide" 
-          title="Next (Right Arrow)"
+          title="Next"
         >
-          <Icon name="chevron-right" :size="32" />
+          <Icon name="chevron-right" :size="34" />
         </button>
       </div>
 
-      <!-- Top Overlay Header -->
-      <header class="fs-top-bar">
-        <div class="fs-memorial-info">
-          <span class="fs-badge">In Loving Memory</span>
-          <h2 class="fs-subject-name">Christiona Adolfin Mona</h2>
+      <!-- Top Overlay: Minimal Memorial Header -->
+      <header class="stage-top-overlay">
+        <div class="subject-tag">
+          <span class="sub-label">In Loving Memory</span>
+          <h2 class="sub-name">Christiona Adolfin Mona</h2>
         </div>
 
-        <div class="fs-top-actions">
-          <span class="fs-counter">{{ currentIndex + 1 }} / {{ mediaList.length }}</span>
+        <div class="top-controls">
+          <span class="slide-badge">{{ currentIndex + 1 }} / {{ mediaList.length }}</span>
           <button 
-            class="fs-btn-icon" 
-            @click="toggleNativeFullscreen" 
+            class="icon-action-pill" 
+            @click.stop="toggleNativeFullscreen" 
             :title="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen (F)'"
           >
             <Icon :name="isFullscreen ? 'minimize' : 'maximize'" :size="20" />
@@ -210,22 +214,22 @@ onUnmounted(() => {
         </div>
       </header>
 
-      <!-- Bottom Overlay: Caption & Playback bar -->
-      <footer class="fs-bottom-bar">
-        <div class="fs-caption-box">
-          <p v-if="currentItem.caption" class="fs-caption-text">
+      <!-- Bottom Overlay: Caption & Playback -->
+      <footer class="stage-bottom-overlay">
+        <div class="caption-wrapper">
+          <p v-if="currentItem.caption" class="caption-text">
             “{{ currentItem.caption }}”
           </p>
-          <div class="fs-meta-row">
-            <span class="fs-author">Shared by <strong>{{ currentItem.user_name || 'Family & Friends' }}</strong></span>
+          <div class="meta-row">
+            <span>By <strong>{{ currentItem.user_name || 'Loved One' }}</strong></span>
             <span>•</span>
             <span>{{ formatDate(currentItem.created_at) }}</span>
           </div>
         </div>
 
-        <div class="fs-playback-controls">
-          <button class="fs-play-btn" @click="togglePlay" :title="isPlaying ? 'Pause' : 'Play (Space)'">
-            <Icon :name="isPlaying ? 'pause' : 'play'" :size="20" />
+        <div class="playback-box">
+          <button class="play-toggle-btn" @click.stop="togglePlay">
+            <Icon :name="isPlaying ? 'pause' : 'play'" :size="18" />
             <span>{{ isPlaying ? 'Pause' : 'Play' }}</span>
           </button>
         </div>
