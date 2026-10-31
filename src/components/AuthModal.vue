@@ -47,13 +47,13 @@ async function submit() {
 
       <form @submit.prevent="submit">
         <div class="form-group">
-          <label for="a-email">Email Admin</label>
+          <label for="a-email">Email</label>
           <input 
             id="a-email" 
             v-model="email" 
             type="email" 
             required 
-            placeholder="admin@christiona.memorial" 
+            placeholder="email@contoh.com" 
             autocomplete="email"
           />
         </div>
