@@ -176,7 +176,6 @@ function resetOverlayFade() {
 
 function handleKeydown(e) {
   if (e.target instanceof Element && e.target.closest('video, button, a, input, textarea, select, [contenteditable]')) return;
-  if (e.key === ' ') { e.preventDefault(); togglePlay(); return; }
   if (e.key === 'ArrowRight') nextSlide();
   if (e.key === 'ArrowLeft') prevSlide();
   if (e.key === 'f' || e.key === 'F') toggleNativeFullscreen();
@@ -224,11 +223,6 @@ function onTouchEnd(e) {
   setTimeout(() => {
     isTouchSwiping = false;
   }, 120);
-}
-
-function handleStageClick() {
-  if (isTouchSwiping) return;
-  togglePlay();
 }
 
 onMounted(async () => {
@@ -315,7 +309,6 @@ onUnmounted(() => {
     <template v-else>
       <div 
         class="stage-viewport" 
-        @click="handleStageClick"
         @touchstart.passive="onTouchStart"
         @touchmove.passive="onTouchMove"
         @touchend="onTouchEnd"
