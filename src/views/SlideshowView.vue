@@ -12,6 +12,7 @@ const slideSeconds = ref(6);
 const currentIndex = ref(0);
 const isPlaying = ref(true);
 const isMuted = ref(false);
+const isLooping = ref(true);
 const loading = ref(true);
 const isFullscreen = ref(false);
 const showOverlay = ref(true);
@@ -132,9 +133,11 @@ function onVideoEnded(event) {
   if (event.target !== videoRef.value || !event.target.ended) return;
   stopAutoPlay();
   if (route.query.source !== 'feed') {
-    if (isPlaying.value) {
+    if (isPlaying.value && isLooping.value) {
       event.target.currentTime = 0;
       event.target.play().catch(() => {});
+    } else {
+      isPlaying.value = false;
     }
     return;
   }
@@ -399,6 +402,9 @@ onUnmounted(() => {
         </div>
 
         <div class="playback-box">
+          <button v-if="route.query.source !== 'feed' && currentItem?.mimetype?.startsWith('video')" class="play-toggle-btn" :class="{ 'loop-active': isLooping }" @click.stop="isLooping = !isLooping" :aria-pressed="isLooping" :aria-label="isLooping ? 'Disable loop' : 'Enable loop'" :title="isLooping ? 'Disable loop' : 'Enable loop'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4m14-1v3a2 2 0 0 1-2 2H3" /></svg>
+          </button>
           <button class="play-toggle-btn" @click.stop="isMuted = !isMuted" :aria-label="isMuted ? 'Unmute' : 'Mute'" :title="isMuted ? 'Unmute' : 'Mute'" :aria-pressed="isMuted">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M11 5 6 9H3v6h3l5 4V5Z" />
