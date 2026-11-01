@@ -2352,3 +2352,15 @@ body:has(.admin-layout) { padding-bottom: 0; }
 .playback-box { display: flex; align-items: center; gap: .65rem; }
 
 .play-toggle-btn.loop-active { color: var(--gold); border-color: var(--gold); background: rgba(231,193,97,.15); }
+
+/* Keep memories readable while hiding controls until the mouse moves. */
+.cinematic-slideshow-view .playback-box,
+.cinematic-slideshow-view .upload-url-pill,
+.cinematic-slideshow-view .slideshow-browser { transition: opacity .3s ease; }
+.cinematic-slideshow-view.controls-idle .playback-box,
+.cinematic-slideshow-view.controls-idle .stage-top-overlay,
+.cinematic-slideshow-view.controls-idle .slideshow-browser {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}

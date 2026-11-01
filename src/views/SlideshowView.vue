@@ -268,7 +268,7 @@ onUnmounted(() => {
 <template>
   <div 
     class="cinematic-slideshow-view" 
-    :class="{ 'ui-hidden': !showOverlay, 'arrows-hidden': !showMemorialHeader, 'memorial-header-hidden': isFullscreen && !showMemorialHeader }"
+    :class="{ 'ui-hidden': !showOverlay, 'arrows-hidden': !showMemorialHeader, 'controls-idle': !showMemorialHeader, 'memorial-header-hidden': isFullscreen && !showMemorialHeader }"
     @mousemove="onMouseMove" 
     @touchstart="resetOverlayFade"
     @click="resetOverlayFade"
@@ -325,7 +325,7 @@ onUnmounted(() => {
               :key="currentItem.id || currentItem.filename"
               :src="`/upload/${currentItem.filename}`" 
               :muted="isMuted"
-              controls 
+              :controls="showMemorialHeader"
               autoplay
               playsinline
               class="slide-fit-media"
