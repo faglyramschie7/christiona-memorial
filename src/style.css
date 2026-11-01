@@ -218,6 +218,7 @@ code {
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #000;
   z-index: 500;
   overflow: hidden;
@@ -243,6 +244,7 @@ code {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,6 +258,7 @@ code {
 .slide-layer {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
