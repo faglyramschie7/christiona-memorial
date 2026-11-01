@@ -12,6 +12,7 @@ const slideSeconds = ref(6);
 const currentIndex = ref(0);
 const isPlaying = ref(true);
 const isMuted = ref(false);
+const musicNeedsInteraction = ref(false);
 const isLooping = ref(true);
 const loading = ref(true);
 const isFullscreen = ref(false);
@@ -35,7 +36,11 @@ function playMusic() {
   if (!musicRef.value) return;
   if (!backgroundMusicEnabled.value) { musicRef.value.pause(); return; }
   musicRef.value.volume = currentItem.value?.mimetype?.startsWith('video') ? 0.25 : 0.6;
-  if (isPlaying.value && currentItem.value) musicRef.value.play().catch(() => {});
+  if (isPlaying.value && currentItem.value) {
+    musicRef.value.play().then(() => { musicNeedsInteraction.value = false; }).catch(error => {
+      if (error.name === 'NotAllowedError') musicNeedsInteraction.value = true;
+    });
+  }
 }
 let timer = null;
 let overlayTimer = null;
@@ -274,6 +279,11 @@ onUnmounted(() => {
     @click="resetOverlayFade"
   >
     <audio :muted="isMuted" v-if="backgroundMusicEnabled" ref="musicRef" :src="musicSrc" loop preload="auto"></audio>
+    <div v-if="backgroundMusicEnabled && musicNeedsInteraction" class="autoplay-overlay">
+      <button class="autoplay-play-button" @click.stop="playMusic" aria-label="Play slideshow audio">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+      </button>
+    </div>
     <!-- Dynamic Ambient Backdrop Glow -->
     <div 
       v-if="currentItem && !currentItem.mimetype.startsWith('video')" 

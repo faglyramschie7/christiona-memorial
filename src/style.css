@@ -2364,3 +2364,9 @@ body:has(.admin-layout) { padding-bottom: 0; }
   visibility: hidden;
   pointer-events: none;
 }
+
+ .autoplay-overlay { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; pointer-events: none; background: rgba(0,0,0,.12); }
+.autoplay-play-button { pointer-events: auto; display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; border: 1px solid var(--gold); background: rgba(10,12,18,.8); color: var(--gold); cursor: pointer; box-shadow: 0 8px 40px #0008; }
+.autoplay-play-button:hover { background: rgba(40,34,18,.95); }
+.autoplay-play-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 5px; }
+
