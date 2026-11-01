@@ -11,6 +11,7 @@ const mediaList = ref([]);
 const slideSeconds = ref(6);
 const currentIndex = ref(0);
 const isPlaying = ref(true);
+const isMuted = ref(false);
 const loading = ref(true);
 const isFullscreen = ref(false);
 const showOverlay = ref(true);
@@ -275,7 +276,7 @@ onUnmounted(() => {
     @touchstart="resetOverlayFade"
     @click="resetOverlayFade"
   >
-    <audio v-if="backgroundMusicEnabled" ref="musicRef" :src="musicSrc" loop preload="auto"></audio>
+    <audio :muted="isMuted" v-if="backgroundMusicEnabled" ref="musicRef" :src="musicSrc" loop preload="auto"></audio>
     <!-- Dynamic Ambient Backdrop Glow -->
     <div 
       v-if="currentItem && !currentItem.mimetype.startsWith('video')" 
@@ -327,6 +328,7 @@ onUnmounted(() => {
               ref="videoRef"
               :key="currentItem.id || currentItem.filename"
               :src="`/upload/${currentItem.filename}`" 
+              :muted="isMuted"
               controls 
               autoplay
               playsinline
@@ -404,6 +406,13 @@ onUnmounted(() => {
         </div>
 
         <div class="playback-box">
+          <button class="play-toggle-btn" @click.stop="isMuted = !isMuted" :aria-label="isMuted ? 'Unmute' : 'Mute'" :title="isMuted ? 'Unmute' : 'Mute'" :aria-pressed="isMuted">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+              <path v-if="isMuted" d="m17 9 5 6m0-6-5 6" />
+              <template v-else><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a10 10 0 0 1 0 14" /></template>
+            </svg>
+          </button>
           <button class="play-toggle-btn" @click.stop="togglePlay">
             <Icon :name="isPlaying ? 'pause' : 'play'" :size="18" />
             <span>{{ isPlaying ? 'Pause' : 'Play' }}</span>

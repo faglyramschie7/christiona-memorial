@@ -265,8 +265,8 @@ code {
 .slide-fit-media {
   max-width: 100vw;
   max-height: 100vh;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   box-shadow: 0 15px 60px rgba(0, 0, 0, 0.95);
   transform-origin: center center;
@@ -2348,3 +2348,5 @@ body:has(.admin-layout) { padding-bottom: 0; }
   opacity: 0;
   pointer-events: none;
 }
+
+.playback-box { display: flex; align-items: center; gap: .65rem; }
